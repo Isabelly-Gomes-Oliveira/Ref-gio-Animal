@@ -24,6 +24,7 @@ app.use(express.json());
 async function conectaBD() {
     try {
         await mssql.connect(stringSQL)
+        console.log("Conectou ao Banco de Dados")
     } 
     catch (erro) {
         console.log(erro)
@@ -40,8 +41,8 @@ conectaBD()
 app.listen(porta, (error) => {
     if (error)
     {
-       console.log("ERRO no Servidor NODEJS rodando na porta 3000");
+       console.log("ERRO no Servidor NODEJS rodando na porta 8081");
        return;
     } 
-    console.log("Servidor NODEJS rodando na porta 3000!");
+    console.log("Servidor NODEJS rodando na porta 8081!");
  });
