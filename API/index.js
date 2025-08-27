@@ -153,10 +153,10 @@ app.post('/cadastroPet', async(request, response) => {
         if(!cpfDoador){
             return response.status(400).json({ error: "CPF é um campo obrigatório!" });
         } 
-        else if(!descricaoPet){
+        if(!descricaoPet){
                 return response.status(400).json({ error: "Descrição é um campo obrigatório!" });
         }
-        else if(!imgPet)
+        if(!imgPet)
             return response.status(400).json({ error: "Imagem é um campo obrigatório!" });
 
 
@@ -215,6 +215,13 @@ app.post('/login', async(request, response) => {
     catch(error){
         response.status(404).json({ message: "Erro ao realizar login"});
     }
+});
+
+
+
+// DELETE para pets que já foram adotados
+app.delete("/deletarPet", async(request, response) => {
+    
 });
 
 /****************** COLOCANDO A API NO AR ******************/
