@@ -88,6 +88,135 @@ app.get('/pets/deficiencia', async (request, response) => {
     }
 });
 
+
+
+
+// POST para cadastro de usuários
+app.post('/cadastroUsuario', async(request, response) => {
+    try{
+        const {cpfUser, nomeUser, emailUser, senhaUser, telefoneUser} = request.body;
+
+
+        // Verificar se os campos obrigatórios foram preenchidos
+        if(!cpfUser){
+            return response.status(400).json({ error: "CPF é um campo obrigatório!" });
+        } 
+        if(!nomeUser){
+            return response.status(400).json({ error: "Nome é um campo obrigatório!" });
+        }
+        if(!senhaUser)
+            return response.status(400).json({ error: "Senha é um campo obrigatório!" });
+        if(!telefoneUser){
+            return response.status(400).json({ error: "Telefone é um campo obrigatório!"})
+        }
+
+
+        // Verificar CPF
+        if (cpfUser.length !== 11){ return response.status(400).json({ error: "CPF inválido!" });
+        }
+
+        // Verificar senha
+        const senhaRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/;   // Regex: mínimo 1 maiúscula, 1 número, 1 caractere especial
+
+        if (senhaUser && !senhaRegex.test(senhaUser)) {  // Verifica se a senha possui os requisitos
+            return response.status(400).json({ error: "A senha deve conter pelo menos 1 letra maiúscula, 1 número e 1 caractere especial." });
+        }
+     
+
+        // Inserir dados no BD
+        await execQuery(` INSERT INTO ONG.Usuario (CPF, nome, email, senha, telefone)
+            VALUES (
+                ${CPF ? `'${cpfUser}'` : 'NOT NULL'},
+                ${nome ? `'${nomeUser}'` : 'NOT NULL'},
+                ${email ? `'${emailUser}'` : 'NULL'},
+                ${senha ? `'${senhaUser}'` : 'NOT NULL'},
+                ${telefone ? `'${telefoneUser}'` : 'NOT NULL'}
+            )
+        `);
+
+        return response.status(201).json({ message: "Usuário cadastrado com sucesso!" });
+    }
+
+    catch(error){
+        response.status(500).json({ error: "Erro ao cadastrar usuário." });
+    }
+});
+
+
+// POST para pets
+app.post('/cadastroPet', async(request, response) => {
+    try{
+        const {cpfDoador, nomePet, racaPet, idadePet, descricaoPet, deficienciaPet, imgPet} = request.body;
+
+
+        // Verificar se os campos obrigatórios foram preenchidos
+        if(!cpfDoador){
+            return response.status(400).json({ error: "CPF é um campo obrigatório!" });
+        } 
+        else if(!descricaoPet){
+                return response.status(400).json({ error: "Descrição é um campo obrigatório!" });
+        }
+        else if(!imgPet)
+            return response.status(400).json({ error: "Imagem é um campo obrigatório!" });
+
+
+        // Verificar se o CPF do doador existe
+        if (execQuery(` SELECT * FROM ONG.Usuario WHERE CPF = '${cpfDoador}' ` === 0)){
+            return response.status(404).json({ error: "CPF de doador não foi encontrado." });
+        }
+
+
+        // Inserir dados no BD
+        await execQuery(` INSERT INTO ONG.Pet (CPF_Doador, nome, raca, idade, descricao, deficiencia, imagem)
+            VALUES (
+                ${CPF ? `'${cpfDoador}'` : 'NOT NULL'},
+                ${nome ? `'${nomePet}'` : 'NULL'},
+                ${raca ? `'${racaPet}'` : 'NULL'},
+                ${idade ? `'${idadePet}'` : 'NULL'},
+                ${descricao ? `'${descricaoPet}'` : 'NOT NULL'},
+                ${deficiencia ? `'${deficidenciaPet}'` : 'NULL'},
+                ${imagem ? `'${imgPet}'` : 'NOT NULL'}
+            )
+        `);
+
+        return response.status(201).json({ message: "Pet cadastrado com sucesso!" });
+    }
+
+    catch(error){
+        response.status(500).json({ error: "Erro ao cadastrar pet." });
+    }
+});
+
+
+// POST para verificar login de usuário
+app.post('/login', async(request, response) => {
+    try{
+        const {usuario, senha} = request.body;
+
+        if(!usuario || !senha){
+            return response.status(204).json({ error: "CPF e Senha são obrigatórios!" });
+        }
+
+        // Verificar cpf
+        else if (execQuery(` SELECT * FROM ONG.Usuario WHERE CPF = '${usuario}' `) === 0){
+            return response.status(404).json({ error: "CPF não foi encontrado." });
+        }
+
+        // Verificar senha
+        else if (execQuery(` SELECT * FROM ONG.Usuario WHERE senha = '${senha}'`) === 0){
+            return response.status(401).json({ error: "Senha inválida." });
+        }
+
+        // Se tudo ocorreu bem...
+        return response.status(202).json({ message: "Login efetuado com sucesso!" });
+
+    }
+
+    catch(error){
+        response.status(404).json({ message: "Erro ao realizar login"});
+    }
+});
+
 /****************** COLOCANDO A API NO AR ******************/
 
 app.listen(porta, (error) => {
