@@ -49,7 +49,7 @@ async function execQuery(sql) {
 // GET geral dos pets
 app.get('/pets', async (request, response) => {
     try {
-        const resultados = await execQuery('SELECT * FROM ONG.Pets');
+        const resultados = await execQuery('SELECT * FROM ONG.Pet');
         response.json(resultados);
     } catch (error) {
         response.status(500).json({ error: "Erro ao buscar todos os pets." });
@@ -60,7 +60,7 @@ app.get('/pets', async (request, response) => {
 app.get('/pets/raca/:raca', async (request, response) => {
     try {
         const raca = request.params.raca;
-        const resultados = await execQuery(`SELECT * FROM ONG.Pets WHERE raca = '${raca}'`);
+        const resultados = await execQuery(`SELECT * FROM ONG.Pet WHERE raca = '${raca}'`);
         response.json(resultados);
     } catch (error) {
         response.status(500).json({ error: `Erro ao buscar pets pela raça: ${request.params.raca}` });
@@ -71,21 +71,20 @@ app.get('/pets/raca/:raca', async (request, response) => {
 app.get('/pets/idade/:idade', async (request, response) => {
     try {
         const idade = parseInt(request.params.idade);
-        const resultados = await execQuery(`SELECT * FROM ONG.Pets WHERE idade = ${idade}`);
+        const resultados = await execQuery(`SELECT * FROM ONG.Pet WHERE idade = ${idade}`);
         response.json(resultados);
     } catch (error) {
         response.status(500).json({ error: `Erro ao buscar pets pela idade: ${request.params.idade}` });
     }
 });
 
-// GET por deficiência do pet
-app.get('/pets/deficiencia/:deficiencia', async (request, response) => {
+// GET pets com alguma deficiência
+app.get('/pets/deficiencia', async (request, response) => {
     try {
-        const deficiencia = request.params.deficiencia;
-        const resultados = await execQuery(`SELECT * FROM ONG.Pets WHERE deficiencia = '${deficiencia}'`);
+        const resultados = await execQuery("SELECT * FROM ONG.Pet WHERE deficiencia IS NOT NULL");
         response.json(resultados);
     } catch (error) {
-        response.status(500).json({ error: `Erro ao buscar pets pela deficiência: ${request.params.deficiencia}` });
+        response.status(500).json({ error: "Erro ao buscar pets com deficiência." });
     }
 });
 
