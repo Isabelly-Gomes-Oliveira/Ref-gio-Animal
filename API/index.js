@@ -220,10 +220,55 @@ app.post('/login', async(request, response) => {
 
 
 // DELETE para pets que já foram adotados
-app.delete("/deletarPet", async(request, response) => {
-    
+app.delete("/deletarPet/:id", async(request, response) => {
+    try{
+        const idPetDelete = request.params;
+        await execQuery(` DELETE * FROM ONG.Pet WHERE id = '${idPetDelete}' `);
+
+        response.json({ message: "Pet deletado com sucesso." });
+    }
+
+    catch(error){
+        response.status(500).json({ error: "Erro ao excluir pet." });
+    }
 });
 
+// DELETE para usuários que desejam excluir sua conta
+app.delete("/deletarUsuario/:cpf", async(request, response) => {
+    try{
+        const cpfUsuario= request.params;
+        await execQuery(` DELETE * FROM ONG.Usuario WHERE CPF = '${cpfUsuario}' `);
+
+        return response.json({ message: "Conta deletada com sucesso." });
+    }
+
+    catch(error){
+        response.status(500).json({ error: "Erro ao excluir conta." });
+    }
+});
+
+
+
+// PUT para atualizar dados de usuário
+app.put("/atualizarDadosUser/:cpf", async(request,response) =>{
+    const cpfAtualizar = request.params;
+    const {emailAtualizar, senhaAtualizar, telefoneAtualizar} = request.body;
+
+    // Verificar senha
+    const senhaRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/;   // Regex: mínimo 1 maiúscula, 1 número, 1 caractere especial
+
+    if (senhaAtualizar && !senhaRegex.test(senhaUser)) {  // Verifica se a senha possui os requisitos
+        return response.status(400).json({ error: "A senha deve conter pelo menos 1 letra maiúscula, 1 número e 1 caractere especial." });
+    }
+
+    await execQuery(` UPDATE ONG.Usuario  SET 
+                      email = '${emailAtualizar}',
+                      senha = '${senhaAtualizar}',
+                      telefone = '${telefoneAtualizar}'
+                      WHERE CPF = '${cpfAtualizar}'`);
+
+    return response.json({ message: "Dados atualizados com sucesso!" });
+});
 /****************** COLOCANDO A API NO AR ******************/
 
 app.listen(porta, (error) => {
