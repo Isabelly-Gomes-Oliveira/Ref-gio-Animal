@@ -251,24 +251,52 @@ app.delete("/deletarUsuario/:cpf", async(request, response) => {
 
 // PUT para atualizar dados de usuário
 app.put("/atualizarDadosUser/:cpf", async(request,response) =>{
-    const cpfAtualizar = request.params;
-    const {emailAtualizar, senhaAtualizar, telefoneAtualizar} = request.body;
+    try{
+        const cpfAtualizar = request.params;
+        const {emailAtualizar, senhaAtualizar, telefoneAtualizar} = request.body;
 
-    // Verificar senha
-    const senhaRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/;   // Regex: mínimo 1 maiúscula, 1 número, 1 caractere especial
+        // Verificar senha
+        const senhaRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/;   // Regex: mínimo 1 maiúscula, 1 número, 1 caractere especial
 
-    if (senhaAtualizar && !senhaRegex.test(senhaUser)) {  // Verifica se a senha possui os requisitos
-        return response.status(400).json({ error: "A senha deve conter pelo menos 1 letra maiúscula, 1 número e 1 caractere especial." });
+        if (senhaAtualizar && !senhaRegex.test(senhaUser)) {  // Verifica se a senha possui os requisitos
+            return response.status(400).json({ error: "A senha deve conter pelo menos 1 letra maiúscula, 1 número e 1 caractere especial." });
+        }
+
+        await execQuery(` UPDATE ONG.Usuario  SET 
+                        email = '${emailAtualizar}',
+                        senha = '${senhaAtualizar}',
+                        telefone = '${telefoneAtualizar}'
+                        WHERE CPF = '${cpfAtualizar}'`);
+
+        return response.json({ message: "Dados atualizados com sucesso!" });
     }
-
-    await execQuery(` UPDATE ONG.Usuario  SET 
-                      email = '${emailAtualizar}',
-                      senha = '${senhaAtualizar}',
-                      telefone = '${telefoneAtualizar}'
-                      WHERE CPF = '${cpfAtualizar}'`);
-
-    return response.json({ message: "Dados atualizados com sucesso!" });
+    catch(error){
+        response.status(500).json({ error: "Erro ao atualizar dados." });
+    }
 });
+
+// PUT para atualizar dados de pet
+app.put("/atualizarDadosPet/:id", async(request,response) =>{
+    try{
+        const idPetAtualizar = request.params;
+        const {nomePetAtualizar, racaPetAtualizar, idadePetAtualizar, descPetAtualizar, deficienciaPetAtualizar, imgPetAtualizar} = request.body;
+
+        await execQuery(` UPDATE ONG.Pet  SET 
+                        nome = '${nomePetAtualizar}',
+                        raca = '${racaPetAtualizar}',
+                        idade = '${idadePetAtualizar}'
+                        descricao = '${descPetAtualizar}',
+                        deficiencia = '${deficienciaPetAtualizar}',
+                        imagem = '${imgPetAtualizar}'
+                        WHERE id = '${idPetAtualizar}'`);
+
+        return response.json({ message: "Dados atualizados com sucesso!" });
+    }
+    catch(error){
+        response.status(500).json({ error: "Erro ao atualizar dados." });
+    }
+});
+
 /****************** COLOCANDO A API NO AR ******************/
 
 app.listen(porta, (error) => {
