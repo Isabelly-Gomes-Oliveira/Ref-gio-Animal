@@ -104,8 +104,9 @@ app.post('/cadastroUsuario', async(request, response) => {
         if(!nomeUser){
             return response.status(400).json({ error: "Nome é um campo obrigatório!" });
         }
-        if(!senhaUser)
+        if(!senhaUser){
             return response.status(400).json({ error: "Senha é um campo obrigatório!" });
+        }
         if(!telefoneUser){
             return response.status(400).json({ error: "Telefone é um campo obrigatório!"})
         }
@@ -174,7 +175,7 @@ app.post('/cadastroPet', async(request, response) => {
                 ${raca ? `'${racaPet}'` : 'NULL'},
                 ${idade ? `'${idadePet}'` : 'NULL'},
                 ${descricao ? `'${descricaoPet}'` : 'NOT NULL'},
-                ${deficiencia ? `'${deficidenciaPet}'` : 'NULL'},
+                ${deficiencia ? `'${deficienciaPet}'` : 'NULL'},
                 ${imagem ? `'${imgPet}'` : 'NOT NULL'}
             )
         `);
@@ -222,8 +223,8 @@ app.post('/login', async(request, response) => {
 // DELETE para pets que já foram adotados
 app.delete("/deletarPet/:id", async(request, response) => {
     try{
-        const idPetDelete = request.params;
-        await execQuery(` DELETE * FROM ONG.Pet WHERE id = '${idPetDelete}' `);
+        const idPetDelete = request.params.id;
+        await execQuery(` DELETE FROM ONG.Pet WHERE id = '${idPetDelete}' `);
 
         response.json({ message: "Pet deletado com sucesso." });
     }
@@ -236,8 +237,8 @@ app.delete("/deletarPet/:id", async(request, response) => {
 // DELETE para usuários que desejam excluir sua conta
 app.delete("/deletarUsuario/:cpf", async(request, response) => {
     try{
-        const cpfUsuario= request.params;
-        await execQuery(` DELETE * FROM ONG.Usuario WHERE CPF = '${cpfUsuario}' `);
+        const cpfUsuario= request.params.cpf;
+        await execQuery(` DELETE FROM ONG.Usuario WHERE CPF = '${cpfUsuario}' `);
 
         return response.json({ message: "Conta deletada com sucesso." });
     }
@@ -252,7 +253,7 @@ app.delete("/deletarUsuario/:cpf", async(request, response) => {
 // PUT para atualizar dados de usuário
 app.put("/atualizarDadosUser/:cpf", async(request,response) =>{
     try{
-        const cpfAtualizar = request.params;
+        const cpfAtualizar = request.params.cpf;
         const {emailAtualizar, senhaAtualizar, telefoneAtualizar} = request.body;
 
         // Verificar senha
@@ -278,7 +279,7 @@ app.put("/atualizarDadosUser/:cpf", async(request,response) =>{
 // PUT para atualizar dados de pet
 app.put("/atualizarDadosPet/:id", async(request,response) =>{
     try{
-        const idPetAtualizar = request.params;
+        const idPetAtualizar = request.params.id;
         const {nomePetAtualizar, racaPetAtualizar, idadePetAtualizar, descPetAtualizar, deficienciaPetAtualizar, imgPetAtualizar} = request.body;
 
         await execQuery(` UPDATE ONG.Pet  SET 
