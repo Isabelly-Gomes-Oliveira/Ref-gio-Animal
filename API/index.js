@@ -50,7 +50,8 @@ async function execQuery(sql) {
 app.get('/pets', async (request, response) => {
     try {
         const resultados = await execQuery('SELECT * FROM ONG.Pet');
-        response.json(resultados);
+        
+        return response.status(201).json({ message: resultados });
     } catch (error) {
         response.status(500).json({ error: "Erro ao buscar todos os pets." });
     }
@@ -61,7 +62,8 @@ app.get('/pets/raca/:raca', async (request, response) => {
     try {
         const raca = request.params.raca;
         const resultados = await execQuery(`SELECT * FROM ONG.Pet WHERE raca = '${raca}'`);
-        response.json(resultados);
+        
+        return response.status(201).json({ message: resultados });
     } catch (error) {
         response.status(500).json({ error: `Erro ao buscar pets pela raça: ${request.params.raca}` });
     }
@@ -72,7 +74,8 @@ app.get('/pets/idade/:idade', async (request, response) => {
     try {
         const idade = parseInt(request.params.idade);
         const resultados = await execQuery(`SELECT * FROM ONG.Pet WHERE idade = ${idade}`);
-        response.json(resultados);
+
+        return response.status(201).json({ message: resultados });
     } catch (error) {
         response.status(500).json({ error: `Erro ao buscar pets pela idade: ${request.params.idade}` });
     }
@@ -82,7 +85,8 @@ app.get('/pets/idade/:idade', async (request, response) => {
 app.get('/pets/deficiencia', async (request, response) => {
     try {
         const resultados = await execQuery("SELECT * FROM ONG.Pet WHERE deficiencia IS NOT NULL");
-        response.json(resultados);
+
+        return response.status(201).json({ message: resultados });
     } catch (error) {
         response.status(500).json({ error: "Erro ao buscar pets com deficiência." });
     }
@@ -154,14 +158,14 @@ app.post('/cadastroPet', async(request, response) => {
             return response.status(400).json({ error: "CPF é um campo obrigatório!" });
         } 
         if(!descricaoPet){
-                return response.status(400).json({ error: "Descrição é um campo obrigatório!" });
+            return response.status(400).json({ error: "Descrição é um campo obrigatório!" });
         }
-        if(!imgPet)
+        if(!imgPet) 
             return response.status(400).json({ error: "Imagem é um campo obrigatório!" });
 
 
         // Verificar se o CPF do doador existe
-        if (execQuery(` SELECT * FROM ONG.Usuario WHERE CPF = '${cpfDoador}' ` === 0)){
+        if (await execQuery(` SELECT * FROM ONG.Usuario WHERE CPF = '${cpfDoador}' ` === 0)){
             return response.status(404).json({ error: "CPF de doador não foi encontrado." });
         }
 
@@ -198,12 +202,12 @@ app.post('/login', async(request, response) => {
         }
 
         // Verificar cpf
-        else if (execQuery(` SELECT * FROM ONG.Usuario WHERE CPF = '${usuario}' `) === 0){
+        else if (await execQuery(` SELECT * FROM ONG.Usuario WHERE CPF = '${usuario}' `) === 0){
             return response.status(404).json({ error: "CPF não foi encontrado." });
         }
 
         // Verificar senha
-        else if (execQuery(` SELECT * FROM ONG.Usuario WHERE senha = '${senha}'`) === 0){
+        else if (await execQuery(` SELECT * FROM ONG.Usuario WHERE senha = '${senha}'`) === 0){
             return response.status(401).json({ error: "Senha inválida." });
         }
 
@@ -236,7 +240,7 @@ app.delete("/deletarPet/:id", async(request, response) => {
 // DELETE para usuários que desejam excluir sua conta
 app.delete("/deletarUsuario/:cpf", async(request, response) => {
     try{
-        const cpfUsuario= request.params;
+        const cpfUsuario = request.params.cpf;
         await execQuery(` DELETE * FROM ONG.Usuario WHERE CPF = '${cpfUsuario}' `);
 
         return response.json({ message: "Conta deletada com sucesso." });
