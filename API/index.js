@@ -50,7 +50,8 @@ async function execQuery(sql) {
 app.get('/pets', async (request, response) => {
     try {
         const resultados = await execQuery('SELECT * FROM ONG.Pet');
-        response.json(resultados);
+        
+        return response.status(200).json({ message: resultados });
     } catch (error) {
         response.status(500).json({ error: "Erro ao buscar todos os pets." });
     }
@@ -61,7 +62,8 @@ app.get('/pets/raca/:raca', async (request, response) => {
     try {
         const raca = request.params.raca;
         const resultados = await execQuery(`SELECT * FROM ONG.Pet WHERE raca = '${raca}'`);
-        response.json(resultados);
+        
+        return response.status(200).json({ message: resultados });
     } catch (error) {
         response.status(500).json({ error: `Erro ao buscar pets pela raça: ${request.params.raca}` });
     }
@@ -72,7 +74,8 @@ app.get('/pets/idade/:idade', async (request, response) => {
     try {
         const idade = parseInt(request.params.idade);
         const resultados = await execQuery(`SELECT * FROM ONG.Pet WHERE idade = ${idade}`);
-        response.json(resultados);
+
+        return response.status(200).json({ message: resultados });
     } catch (error) {
         response.status(500).json({ error: `Erro ao buscar pets pela idade: ${request.params.idade}` });
     }
@@ -82,7 +85,8 @@ app.get('/pets/idade/:idade', async (request, response) => {
 app.get('/pets/deficiencia', async (request, response) => {
     try {
         const resultados = await execQuery("SELECT * FROM ONG.Pet WHERE deficiencia IS NOT NULL");
-        response.json(resultados);
+
+        return response.status(201).json({ message: resultados });
     } catch (error) {
         response.status(500).json({ error: "Erro ao buscar pets com deficiência." });
     }
@@ -92,7 +96,7 @@ app.get('/pets/deficiencia', async (request, response) => {
 
 
 // POST para cadastro de usuários
-app.post('/cadastroUsuario', async(request, response) => {
+app.post('/cadastro/usuario', async(request, response) => {
     try{
         const {cpfUser, nomeUser, emailUser, senhaUser, telefoneUser} = request.body;
 
@@ -125,13 +129,14 @@ app.post('/cadastroUsuario', async(request, response) => {
      
 
         // Inserir dados no BD
-        await execQuery(` INSERT INTO ONG.Usuario (CPF, nome, email, senha, telefone)
+        await execQuery(`
+            INSERT INTO ONG.Usuario (CPF, nome, email, senha, telefone)
             VALUES (
-                ${CPF ? `'${cpfUser}'` : 'NOT NULL'},
-                ${nome ? `'${nomeUser}'` : 'NOT NULL'},
-                ${email ? `'${emailUser}'` : 'NULL'},
-                ${senha ? `'${senhaUser}'` : 'NOT NULL'},
-                ${telefone ? `'${telefoneUser}'` : 'NOT NULL'}
+                '${cpfUser}',
+                '${nomeUser}',
+                ${emailUser ? `'${emailUser}'` : 'NULL'},
+                '${senhaUser}',
+                '${telefoneUser}'
             )
         `);
 
@@ -145,7 +150,7 @@ app.post('/cadastroUsuario', async(request, response) => {
 
 
 // POST para pets
-app.post('/cadastroPet', async(request, response) => {
+app.post('/cadastro/pets', async(request, response) => {
     try{
         const {cpfDoador, nomePet, racaPet, idadePet, descricaoPet, deficienciaPet, imgPet} = request.body;
 
@@ -155,20 +160,21 @@ app.post('/cadastroPet', async(request, response) => {
             return response.status(400).json({ error: "CPF é um campo obrigatório!" });
         } 
         if(!descricaoPet){
-                return response.status(400).json({ error: "Descrição é um campo obrigatório!" });
+            return response.status(400).json({ error: "Descrição é um campo obrigatório!" });
         }
-        if(!imgPet)
+        if(!imgPet){
             return response.status(400).json({ error: "Imagem é um campo obrigatório!" });
+        }
 
+        const resultado = await execQuery(`SELECT * FROM ONG.Usuario WHERE CPF = '${cpfDoador}'`);
 
-        // Verificar se o CPF do doador existe
-        if (execQuery(` SELECT * FROM ONG.Usuario WHERE CPF = '${cpfDoador}' ` === 0)){
+        if (resultado.length === 0) {
             return response.status(404).json({ error: "CPF de doador não foi encontrado." });
         }
 
-
         // Inserir dados no BD
-        await execQuery(` INSERT INTO ONG.Pet (CPF_Doador, nome, raca, idade, descricao, deficiencia, imagem)
+        await execQuery(`
+            INSERT INTO ONG.Pet (CPF_Doador, nome, raca, idade, descricao, deficiencia, imagem)
             VALUES (
                 ${CPF ? `'${cpfDoador}'` : 'NOT NULL'},
                 ${nome ? `'${nomePet}'` : 'NULL'},
@@ -176,9 +182,7 @@ app.post('/cadastroPet', async(request, response) => {
                 ${idade ? `'${idadePet}'` : 'NULL'},
                 ${descricao ? `'${descricaoPet}'` : 'NOT NULL'},
                 ${deficiencia ? `'${deficienciaPet}'` : 'NULL'},
-                ${imagem ? `'${imgPet}'` : 'NOT NULL'}
-            )
-        `);
+                ${imagem ? `'${imgPet}'` : 'NOT NULL'})`);
 
         return response.status(201).json({ message: "Pet cadastrado com sucesso!" });
     }
@@ -190,43 +194,45 @@ app.post('/cadastroPet', async(request, response) => {
 
 
 // POST para verificar login de usuário
-app.post('/login', async(request, response) => {
-    try{
-        const {usuario, senha} = request.body;
+app.post('/login', async (request, response) => {
+    try {
+        const { usuario, senha } = request.body;
 
-        if(!usuario || !senha){
-            return response.status(204).json({ error: "CPF e Senha são obrigatórios!" });
+        // Verificação básica
+        if (!usuario || !senha) {
+            return response.status(400).json({ error: "CPF e Senha são obrigatórios!" });
         }
 
-        // Verificar cpf
-        else if (execQuery(` SELECT * FROM ONG.Usuario WHERE CPF = '${usuario}' `) === 0){
+        // Buscar usuário por CPF
+        const resultado = await execQuery(`SELECT * FROM ONG.Usuario WHERE CPF = '${usuario}'`);
+
+
+        if (resultado.length === 0) {
             return response.status(404).json({ error: "CPF não foi encontrado." });
         }
 
-        // Verificar senha
-        else if (execQuery(` SELECT * FROM ONG.Usuario WHERE senha = '${senha}'`) === 0){
+        const usuarioEncontrado = resultado[0];
+
+        // Verificação de senha — assumindo que está armazenada em texto plano (o que não é recomendado!)
+        if (usuarioEncontrado.senha !== senha) {
             return response.status(401).json({ error: "Senha inválida." });
         }
 
-        // Se tudo ocorreu bem...
-        return response.status(202).json({ message: "Login efetuado com sucesso!" });
+        // Tudo certo
+        return response.status(201).json({ message: "Login efetuado com sucesso!" });
 
-    }
-
-    catch(error){
-        response.status(404).json({ message: "Erro ao realizar login"});
+    } catch (error) {
+        return response.status(500).json({ message: "Erro ao realizar login" });
     }
 });
 
-
-
 // DELETE para pets que já foram adotados
-app.delete("/deletarPet/:id", async(request, response) => {
+app.delete("/deletar/pets/:id", async(request, response) => {
     try{
         const idPetDelete = request.params.id;
         await execQuery(` DELETE FROM ONG.Pet WHERE id = '${idPetDelete}' `);
 
-        response.json({ message: "Pet deletado com sucesso." });
+        response.status(201).json({ message: "Pet deletado com sucesso." });
     }
 
     catch(error){
@@ -235,12 +241,13 @@ app.delete("/deletarPet/:id", async(request, response) => {
 });
 
 // DELETE para usuários que desejam excluir sua conta
-app.delete("/deletarUsuario/:cpf", async(request, response) => {
+app.delete("/deletar/usuario/:cpf", async(request, response) => {
     try{
-        const cpfUsuario= request.params.cpf;
+
+        const cpfUsuario = request.params.cpf;
         await execQuery(` DELETE FROM ONG.Usuario WHERE CPF = '${cpfUsuario}' `);
 
-        return response.json({ message: "Conta deletada com sucesso." });
+        return response.status(201).json({ message: "Conta deletada com sucesso." });
     }
 
     catch(error){
@@ -251,9 +258,9 @@ app.delete("/deletarUsuario/:cpf", async(request, response) => {
 
 
 // PUT para atualizar dados de usuário
-app.put("/atualizarDadosUser/:cpf", async(request,response) =>{
+app.put("/atualizar/usuario/:cpf", async(request,response) =>{
     try{
-        const cpfAtualizar = request.params.cpf;
+        const cpfUsuario = request.params.cpf;
         const {emailAtualizar, senhaAtualizar, telefoneAtualizar} = request.body;
 
         // Verificar senha
@@ -267,9 +274,9 @@ app.put("/atualizarDadosUser/:cpf", async(request,response) =>{
                         email = '${emailAtualizar}',
                         senha = '${senhaAtualizar}',
                         telefone = '${telefoneAtualizar}'
-                        WHERE CPF = '${cpfAtualizar}'`);
+                        WHERE CPF = '${cpfUsuario}'`);
 
-        return response.json({ message: "Dados atualizados com sucesso!" });
+        return response.status(201).json({ message: "Dados atualizados com sucesso!" });
     }
     catch(error){
         response.status(500).json({ error: "Erro ao atualizar dados." });
@@ -277,7 +284,7 @@ app.put("/atualizarDadosUser/:cpf", async(request,response) =>{
 });
 
 // PUT para atualizar dados de pet
-app.put("/atualizarDadosPet/:id", async(request,response) =>{
+app.put("/atualizar/pets/:id", async(request,response) =>{
     try{
         const idPetAtualizar = request.params.id;
         const {nomePetAtualizar, racaPetAtualizar, idadePetAtualizar, descPetAtualizar, deficienciaPetAtualizar, imgPetAtualizar} = request.body;
@@ -285,13 +292,13 @@ app.put("/atualizarDadosPet/:id", async(request,response) =>{
         await execQuery(` UPDATE ONG.Pet  SET 
                         nome = '${nomePetAtualizar}',
                         raca = '${racaPetAtualizar}',
-                        idade = '${idadePetAtualizar}'
+                        idade = '${idadePetAtualizar}',
                         descricao = '${descPetAtualizar}',
                         deficiencia = '${deficienciaPetAtualizar}',
                         imagem = '${imgPetAtualizar}'
                         WHERE id = '${idPetAtualizar}'`);
 
-        return response.json({ message: "Dados atualizados com sucesso!" });
+        return response.status(201).json({ message: "Dados atualizados com sucesso!" });
     }
     catch(error){
         response.status(500).json({ error: "Erro ao atualizar dados." });
