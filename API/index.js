@@ -226,7 +226,7 @@ app.post('/login', async (request, response) => {
     }
 });
 
-// DELETE para pets que já foram adotados
+// DELETE para pets que já foram adotados - alterar: não excluir, mas alterar status
 app.delete("/deletar/pets/:id", async(request, response) => {
     try{
         const idPetDelete = request.params.id;
