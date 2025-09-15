@@ -17,6 +17,8 @@ CREATE TABLE ONG.Pet (
     descricao VARCHAR(300) NOT NULL,
     deficiencia VARCHAR(100),
     imagem VARCHAR(500) NOT NULL,
+	especie VARCHAR(50) NOT NULL,
+	status_adotado INT NOT NULL      
 
     CONSTRAINT FK_CPF_Usuario FOREIGN KEY (CPF_Doador) REFERENCES ONG.Usuario(CPF)
 );

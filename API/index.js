@@ -69,6 +69,18 @@ app.get('/pets/raca/:raca', async (request, response) => {
     }
 });
 
+// GET por especie do pet
+app.get('/pets/especie/:especie', async (request, response) => {
+    try {
+        const especie = request.params.especie;
+        const resultados = await execQuery(`SELECT * FROM ONG.Pet WHERE especie = '${especie}'`);
+        
+        return response.status(200).json({ message: resultados });
+    } catch (error) {
+        response.status(500).json({ error: `Erro ao buscar pets pela espécie: ${request.params.especie}` });
+    }
+});
+
 // GET por idade do pet
 app.get('/pets/idade/:idade', async (request, response) => {
     try {
