@@ -164,8 +164,7 @@ app.post('/cadastro/usuario', async(request, response) => {
 // POST para pets
 app.post('/cadastro/pets', async(request, response) => {
     try{
-        const {cpfDoador, nomePet, racaPet, idadePet, descricaoPet, deficienciaPet, imgPet} = request.body;
-
+        const {cpfDoador, nomePet, racaPet, idadePet, descricaoPet, deficienciaPet, imgPet, especiePet, statusPet} = request.body;
 
         // Verificar se os campos obrigatórios foram preenchidos
         if(!cpfDoador){
@@ -177,6 +176,12 @@ app.post('/cadastro/pets', async(request, response) => {
         if(!imgPet){
             return response.status(400).json({ error: "Imagem é um campo obrigatório!" });
         }
+        if(!especie){
+            return response.status(400).json({ error: "Especie é um campo obrigatório!" });
+        }
+        if(!status){
+            return response.status(400).json({ error: "Status do pet adotado é um campo obrigatório!" });
+        }
 
         const resultado = await execQuery(`SELECT * FROM ONG.Usuario WHERE CPF = '${cpfDoador}'`);
 
@@ -186,7 +191,7 @@ app.post('/cadastro/pets', async(request, response) => {
 
         // Inserir dados no BD
         await execQuery(`
-            INSERT INTO ONG.Pet (CPF_Doador, nome, raca, idade, descricao, deficiencia, imagem)
+            INSERT INTO ONG.Pet (CPF_Doador, nome, raca, idade, descricao, deficiencia, imagem, especie, status_adotado)
             VALUES (
                 ${CPF ? `'${cpfDoador}'` : 'NOT NULL'},
                 ${nome ? `'${nomePet}'` : 'NULL'},
@@ -194,7 +199,9 @@ app.post('/cadastro/pets', async(request, response) => {
                 ${idade ? `'${idadePet}'` : 'NULL'},
                 ${descricao ? `'${descricaoPet}'` : 'NOT NULL'},
                 ${deficiencia ? `'${deficienciaPet}'` : 'NULL'},
-                ${imagem ? `'${imgPet}'` : 'NOT NULL'})`);
+                ${imagem ? `'${imgPet}'` : 'NOT NULL'},
+                ${especie ? `'${especiePet}'` : 'NOT NULL'},
+                ${status_adotado ? `'${statusPet}'` : 'NOT NULL'})`);
 
         return response.status(201).json({ message: "Pet cadastrado com sucesso!" });
     }
@@ -238,17 +245,19 @@ app.post('/login', async (request, response) => {
     }
 });
 
-// DELETE para pets que já foram adotados - alterar: não excluir, mas alterar status
-app.delete("/deletar/pets/:id", async(request, response) => {
+// POST para atualizar o Status do pet
+app.post("/atualizar/statusPets/:id", async(request, response) => {
     try{
-        const idPetDelete = request.params.id;
-        await execQuery(` DELETE FROM ONG.Pet WHERE id = '${idPetDelete}' `);
+        const idPet = request.params.id;
+        const { statusPetAtualizar } = request.body;
 
-        response.status(201).json({ message: "Pet deletado com sucesso." });
+            await execQuery(` UPDATE ONG.Pet SET status_adotado = '${statusPetAtualizar}' WHERE id = '${idPet}'`);
+
+        response.status(201).json({ message: "Pet desativado com sucesso." });
     }
 
     catch(error){
-        response.status(500).json({ error: "Erro ao excluir pet." });
+        response.status(500).json({ error: "Erro ao desativar pet." });
     }
 });
 
@@ -266,8 +275,6 @@ app.delete("/deletar/usuario/:cpf", async(request, response) => {
         response.status(500).json({ error: "Erro ao excluir conta." });
     }
 });
-
-
 
 // PUT para atualizar dados de usuário
 app.put("/atualizar/usuario/:cpf", async(request,response) =>{
@@ -299,7 +306,7 @@ app.put("/atualizar/usuario/:cpf", async(request,response) =>{
 app.put("/atualizar/pets/:id", async(request,response) =>{
     try{
         const idPetAtualizar = request.params.id;
-        const {nomePetAtualizar, racaPetAtualizar, idadePetAtualizar, descPetAtualizar, deficienciaPetAtualizar, imgPetAtualizar} = request.body;
+        const {nomePetAtualizar, racaPetAtualizar, idadePetAtualizar, descPetAtualizar, deficienciaPetAtualizar, imgPetAtualizar, especiePetAtualizar, statusPetAtualizar} = request.body;
 
         await execQuery(` UPDATE ONG.Pet  SET 
                         nome = '${nomePetAtualizar}',
@@ -307,7 +314,9 @@ app.put("/atualizar/pets/:id", async(request,response) =>{
                         idade = '${idadePetAtualizar}',
                         descricao = '${descPetAtualizar}',
                         deficiencia = '${deficienciaPetAtualizar}',
-                        imagem = '${imgPetAtualizar}'
+                        imagem = '${imgPetAtualizar}',
+                        especie = '${especiePetAtualizar}',
+                        status_adotado = '${statusPetAtualizar}'
                         WHERE id = '${idPetAtualizar}'`);
 
         return response.status(201).json({ message: "Dados atualizados com sucesso!" });
