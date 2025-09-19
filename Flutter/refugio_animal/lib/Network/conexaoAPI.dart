@@ -1,4 +1,4 @@
-import 'dart:convert';               
+import 'dart:convert'; // para converter entre objetos Dart e JSON (string)        
 import 'package:http/http.dart' as http; 
 import 'usuario.dart';         
 import 'pet.dart';         
@@ -7,19 +7,19 @@ class ApiService {
   static const String baseUrl = 'http://10.0.2.2:3000'; 
 
   // GET /pets
-  static Future<List<Pet>> getPets() async {        
-    final response = await http.get(Uri.parse('$baseUrl/pets')); // 7
+  static Future<List<Pet>> getPets() async {   // retorna uma lista de Pet
+    final response = await http.get(Uri.parse('$baseUrl/pets'));
 
-    if (response.statusCode == 200) {                    // 8
-      final List data = jsonDecode(response.body);       // 9
-      return data.map((e) => Pet.fromJson(e)).toList();  // 10
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);       // decodifica o JSON recebido para estruturas Dart
+      return data.map((e) => Pet.fromJson(e)).toList();  // converte cada item JSON em uma instância Pet
     } else {
-      throw Exception('Erro ao carregar pets');          // 11
+      throw Exception('Erro ao carregar pets');
     }
   }
 
   // GET /pets/raca/:raca
-  static Future<List<Pet>> getPetsByRaca(String raca) async { // 12
+  static Future<List<Pet>> getPetsByRaca(String raca) async { // retorna lista de pets dessa raça
     final encoded = Uri.encodeComponent(raca);           // 13
     final response = await http.get(Uri.parse('$baseUrl/pets/raca/$encoded')); // 14
 
