@@ -5,7 +5,7 @@ const cors = require("cors");
 const bcrypt = require('bcrypt');
 
 const app = express();
-const porta = process.env.PORTA || 3000; // Adicionando porta padrão
+const porta = process.env.PORTA || 8081;
 const stringSQL = process.env.CONNECTION_STRING;
 const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10');
 
@@ -274,8 +274,6 @@ app.post('/pets', validarCamposObrigatorios(['cpfDoador','descricaoPet','imgPet'
 // #####                        ROTAS PUT                       #####
 // ##################################################################
 
-// ===== ROTAS PUT - USUÁRIO =====
-
 // Rota para atualizar usuário
 app.put("/usuarios/:cpf", validarSenha, validarCPF('cpf'), async (req,res) => {
         try {
@@ -348,8 +346,6 @@ app.put("/pets/:id", async(req,res) =>{
 // ##################################################################
 // #####                      ROTAS DELETE                      #####
 // ##################################################################
-
-// ===== ROTAS DELETE - USUÁRIO =====
 
 // Rota para deletar usuário
 app.delete("/usuarios/:cpf", validarCPF('cpf'), async(req,res)=>{
