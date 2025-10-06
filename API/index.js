@@ -5,7 +5,7 @@ const cors = require("cors");
 const bcrypt = require('bcrypt');
 
 const app = express();
-const porta = process.env.PORTA;
+const porta = process.env.PORTA || 3000; // Adicionando porta padrão
 const stringSQL = process.env.CONNECTION_STRING;
 const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10');
 
@@ -61,16 +61,6 @@ function validarSenha(req, res, next) {
     next();
 }
 
-function validarCPF(campoCPF) {
-    return (req, res, next) => {
-        const cpf = req.body[campoCPF] || req.params[campoCPF];
-        if (!cpf || !isCPFValido(cpf)) {
-            return res.status(400).json({ error: "CPF inválido." });
-        }
-        next();
-    };
-}
-
 function isCPFValido(cpf) {
     cpf = cpf.replace(/[^\d]+/g, '');
     if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
@@ -86,10 +76,122 @@ function isCPFValido(cpf) {
     return resto === parseInt(cpf.substring(10,11));
 }
 
-// ===== ROTAS USUÁRIO =====
+function validarCPF(campoCPF) {
+    return (req, res, next) => {
+        const cpf = req.body[campoCPF] || req.params[campoCPF];
+        if (!cpf || !isCPFValido(cpf)) {
+            return res.status(400).json({ error: "CPF inválido." });
+        }
+        next();
+    };
+}
 
-// Cadastro
-app.post('/cadastro/usuario', validarCamposObrigatorios(['cpfUser','nomeUser','senhaUser','telefoneUser']), validarSenha, validarCPF('cpfUser'), async (req, res) => {
+
+// ##################################################################
+// #####                       ROTAS GET                        #####
+// ##################################################################
+
+// ===== ROTAS GET - USUÁRIO =====
+
+// Rota para buscar todos os usuários
+app.get('/usuarios', async (req, res) => {
+    try {
+        const sql = `SELECT CPF, nome, email, telefone FROM ONG.Usuario`;
+        const resultados = await execQuerySafe(sql);
+        return res.status(200).json(resultados);
+    } catch(err) {
+        console.error(err);
+        return res.status(500).json({ error: "Erro ao buscar usuários." });
+    }
+});
+
+// Rota para buscar um usuário específico por CPF
+app.get('/usuarios/:cpf', validarCPF('cpf'), async (req, res) => {
+    try {
+        const sql = `SELECT CPF, nome, email, telefone FROM ONG.Usuario WHERE CPF = @cpf`;
+        const resultados = await execQuerySafe(sql, [
+            { name: "cpf", type: mssql.VarChar(11), value: req.params.cpf }
+        ]);
+        if (resultados.length === 0) {
+            return res.status(404).json({ error: "Usuário não encontrado." });
+        }
+        return res.status(200).json(resultados[0]);
+    } catch(err) {
+        return res.status(500).json({ error: "Erro ao buscar usuário." });
+    }
+});
+
+// Rota para buscar todos os pets
+app.get('/pets', async (req,res) => {
+    try {
+        const sql = `SELECT * FROM ONG.Pet`;
+        const resultados = await execQuerySafe(sql);
+        return res.status(200).json(resultados);
+    } catch(err) {
+        console.error(err);
+        return res.status(500).json({ error: "Erro ao buscar pets." });
+    }
+});
+
+// Rota para buscar pets por raça
+app.get('/pets/raca/:raca', async (req,res) => {
+    try {
+        const sql = `SELECT * FROM ONG.Pet WHERE raca = @raca`;
+        const resultados = await execQuerySafe(sql, [
+            { name: "raca", type: mssql.VarChar(100), value: req.params.raca }
+        ]);
+        return res.status(200).json(resultados);
+    } catch(err) {
+        return res.status(500).json({ error: "Erro ao buscar pets por raça." });
+    }
+});
+
+// Rota para buscar pets por espécie
+app.get('/pets/especie/:especie', async (req,res) => {
+    try {
+        const sql = `SELECT * FROM ONG.Pet WHERE especie = @especie`;
+        const resultados = await execQuerySafe(sql, [
+            { name: "especie", type: mssql.VarChar(50), value: req.params.especie }
+        ]);
+        return res.status(200).json(resultados);
+    } catch(err) {
+        return res.status(500).json({ error: "Erro ao buscar pets por espécie." });
+    }
+});
+
+// Rota para buscar pets por idade
+app.get('/pets/idade/:idade', async (req,res) => {
+    try {
+        const sql = `SELECT * FROM ONG.Pet WHERE idade = @idade`;
+        const resultados = await execQuerySafe(sql, [
+            { name: "idade", type: mssql.Int, value: parseInt(req.params.idade) }
+        ]);
+        return res.status(200).json(resultados);
+    } catch(err) {
+        return res.status(500).json({ error: "Erro ao buscar pets por idade." });
+    }
+});
+
+// Rota para buscar pets com deficiência
+app.get('/pets/deficiencia', async (req,res) => {
+    try {
+        const sql = `SELECT * FROM ONG.Pet WHERE deficiencia IS NOT NULL`;
+        const resultados = await execQuerySafe(sql);
+        return res.status(200).json(resultados);
+    } catch(err) {
+        return res.status(500).json({ error: "Erro ao buscar pets com deficiência." });
+    }
+});
+
+
+// ##################################################################
+// #####                       ROTAS POST                       #####
+// ##################################################################
+
+// ===== ROTAS POST - USUÁRIO =====
+
+// Rota para cadastro de usuário
+app.post('/usuarios', validarCamposObrigatorios(['cpfUser','nomeUser','senhaUser','telefoneUser']), validarSenha, validarCPF('cpfUser'), async (req, res) => {
         try {
             const { cpfUser, nomeUser, emailUser, senhaUser, telefoneUser } = req.body;
             const hashSenha = await bcrypt.hash(senhaUser, saltRounds);
@@ -114,7 +216,7 @@ app.post('/cadastro/usuario', validarCamposObrigatorios(['cpfUser','nomeUser','s
     }
 );
 
-// Login
+// Rota de login
 app.post('/login', async (req,res) => {
     try {
         const { usuario, senha } = req.body;
@@ -137,52 +239,8 @@ app.post('/login', async (req,res) => {
     }
 });
 
-// Atualizar usuário
-app.put("/atualizar/usuario/:cpf", validarSenha, validarCPF('cpf'), async (req,res) => {
-        try {
-            const cpfUsuario = req.params.cpf;
-            const { emailAtualizar, senhaAtualizar, telefoneAtualizar } = req.body;
-            let hashSenha = senhaAtualizar ? await bcrypt.hash(senhaAtualizar, saltRounds) : null;
-
-            const sql = `
-                UPDATE ONG.Usuario
-                SET email = @email,
-                    senha = ISNULL(@senha, senha),
-                    telefone = @telefone
-                WHERE CPF = @cpf
-            `;
-
-            await execQuerySafe(sql, [
-                { name: "email", type: mssql.VarChar(100), value: emailAtualizar || null },
-                { name: "senha", type: mssql.VarChar(100), value: hashSenha },
-                { name: "telefone", type: mssql.VarChar(15), value: telefoneAtualizar },
-                { name: "cpf", type: mssql.VarChar(11), value: cpfUsuario }
-            ]);
-
-            return res.status(201).json({ message: "Dados atualizados com sucesso!" });
-        } catch(err) {
-            console.error(err);
-            return res.status(500).json({ error: "Erro ao atualizar usuário" });
-        }
-    }
-);
-
-// Delete usuário
-app.delete("/deletar/usuario/:cpf", validarCPF('cpf'), async(req,res)=>{
-    try{
-        const sql = `DELETE FROM ONG.Usuario WHERE CPF = @cpf`;
-        await execQuerySafe(sql, [{ name: "cpf", type: mssql.VarChar(11), value: req.params.cpf }]);
-        return res.status(201).json({ message: "Conta deletada com sucesso." });
-    } catch(err){
-        console.error(err);
-        return res.status(500).json({ error: "Erro ao excluir conta." });
-    }
-});
-
-// ===== ROTAS PETS =====
-
-// Cadastrar pet
-app.post('/cadastro/pets', validarCamposObrigatorios(['cpfDoador','descricaoPet','imgPet','especiePet']), validarCPF('cpfDoador'), async (req,res) => {
+// Rota para cadastrar pet
+app.post('/pets', validarCamposObrigatorios(['cpfDoador','descricaoPet','imgPet','especiePet']), validarCPF('cpfDoador'), async (req,res) => {
         try {
             const { cpfDoador, nomePet, racaPet, idadePet, descricaoPet, deficienciaPet, imgPet, especiePet, statusPet } = req.body;
 
@@ -211,86 +269,59 @@ app.post('/cadastro/pets', validarCamposObrigatorios(['cpfDoador','descricaoPet'
     }
 );
 
-// ===== GET PETS =====
 
-// Todos os pets
-app.get('/pets', async (req,res) => {
-    try {
-        const sql = `SELECT * FROM ONG.Pet`;
-        const resultados = await execQuerySafe(sql);
-        return res.status(200).json(resultados);
-    } catch(err) {
-        console.error(err);
-        return res.status(500).json({ error: "Erro ao buscar pets." });
+// ##################################################################
+// #####                        ROTAS PUT                       #####
+// ##################################################################
+
+// ===== ROTAS PUT - USUÁRIO =====
+
+// Rota para atualizar usuário
+app.put("/usuarios/:cpf", validarSenha, validarCPF('cpf'), async (req,res) => {
+        try {
+            const cpfUsuario = req.params.cpf;
+            const { emailAtualizar, senhaAtualizar, telefoneAtualizar } = req.body;
+            let hashSenha = senhaAtualizar ? await bcrypt.hash(senhaAtualizar, saltRounds) : null;
+
+            const sql = `
+                UPDATE ONG.Usuario
+                SET email = ISNULL(@email, email),
+                    senha = ISNULL(@senha, senha),
+                    telefone = ISNULL(@telefone, telefone)
+                WHERE CPF = @cpf
+            `;
+
+            await execQuerySafe(sql, [
+                { name: "email", type: mssql.VarChar(100), value: emailAtualizar || null },
+                { name: "senha", type: mssql.VarChar(100), value: hashSenha },
+                { name: "telefone", type: mssql.VarChar(15), value: telefoneAtualizar || null },
+                { name: "cpf", type: mssql.VarChar(11), value: cpfUsuario }
+            ]);
+
+            return res.status(200).json({ message: "Dados atualizados com sucesso!" });
+        } catch(err) {
+            console.error(err);
+            return res.status(500).json({ error: "Erro ao atualizar usuário" });
+        }
     }
-});
+);
 
-// Pets por raça
-app.get('/pets/raca/:raca', async (req,res) => {
-    try {
-        const sql = `SELECT * FROM ONG.Pet WHERE raca = @raca`;
-        const resultados = await execQuerySafe(sql, [
-            { name: "raca", type: mssql.VarChar(100), value: req.params.raca }
-        ]);
-        return res.status(200).json(resultados);
-    } catch(err) {
-        return res.status(500).json({ error: "Erro ao buscar pets por raça." });
-    }
-});
-
-// Pets por espécie
-app.get('/pets/especie/:especie', async (req,res) => {
-    try {
-        const sql = `SELECT * FROM ONG.Pet WHERE especie = @especie`;
-        const resultados = await execQuerySafe(sql, [
-            { name: "especie", type: mssql.VarChar(50), value: req.params.especie }
-        ]);
-        return res.status(200).json(resultados);
-    } catch(err) {
-        return res.status(500).json({ error: "Erro ao buscar pets por espécie." });
-    }
-});
-
-// Pets por idade
-app.get('/pets/idade/:idade', async (req,res) => {
-    try {
-        const sql = `SELECT * FROM ONG.Pet WHERE idade = @idade`;
-        const resultados = await execQuerySafe(sql, [
-            { name: "idade", type: mssql.Int, value: parseInt(req.params.idade) }
-        ]);
-        return res.status(200).json(resultados);
-    } catch(err) {
-        return res.status(500).json({ error: "Erro ao buscar pets por idade." });
-    }
-});
-
-// Pets com deficiência
-app.get('/pets/deficiencia', async (req,res) => {
-    try {
-        const sql = `SELECT * FROM ONG.Pet WHERE deficiencia IS NOT NULL`;
-        const resultados = await execQuerySafe(sql);
-        return res.status(200).json(resultados);
-    } catch(err) {
-        return res.status(500).json({ error: "Erro ao buscar pets com deficiência." });
-    }
-});
-
-// ===== UPDATE PETS =====
-app.put("/atualizar/pets/:id", async(req,res) =>{
+// Rota para atualizar pets
+app.put("/pets/:id", async(req,res) =>{
     try{
         const idPet = req.params.id;
         const { nomePetAtualizar, racaPetAtualizar, idadePetAtualizar, descPetAtualizar, deficienciaPetAtualizar, imgPetAtualizar, especiePetAtualizar, statusPetAtualizar } = req.body;
 
         const sql = `
             UPDATE ONG.Pet SET 
-                nome = @nome,
-                raca = @raca,
-                idade = @idade,
-                descricao = @descricao,
-                deficiencia = @deficiencia,
-                imagem = @imagem,
-                especie = @especie,
-                status_adotado = @status
+                nome = ISNULL(@nome, nome),
+                raca = ISNULL(@raca, raca),
+                idade = ISNULL(@idade, idade),
+                descricao = ISNULL(@descricao, descricao),
+                deficiencia = ISNULL(@deficiencia, deficiencia),
+                imagem = ISNULL(@imagem, imagem),
+                especie = ISNULL(@especie, especie),
+                status_adotado = ISNULL(@status, status_adotado)
             WHERE id = @id
         `;
 
@@ -302,33 +333,55 @@ app.put("/atualizar/pets/:id", async(req,res) =>{
             { name: "deficiencia", type: mssql.VarChar(100), value: deficienciaPetAtualizar || null },
             { name: "imagem", type: mssql.VarChar(500), value: imgPetAtualizar || null },
             { name: "especie", type: mssql.VarChar(50), value: especiePetAtualizar || null },
-            { name: "status", type: mssql.VarChar(20), value: statusPetAtualizar || 'disponível' },
+            { name: "status", type: mssql.VarChar(20), value: statusPetAtualizar || null },
             { name: "id", type: mssql.Int, value: idPet }
         ]);
 
-        return res.status(201).json({ message: "Pet atualizado com sucesso!" });
+        return res.status(200).json({ message: "Pet atualizado com sucesso!" });
     } catch(err) {
         console.error(err);
         return res.status(500).json({ error: "Erro ao atualizar pet." });
     }
 });
 
-// ===== SOFT DELETE (Status adotado) =====
-app.delete("/deletar/pets/:id", async (req,res) => {
+
+// ##################################################################
+// #####                      ROTAS DELETE                      #####
+// ##################################################################
+
+// ===== ROTAS DELETE - USUÁRIO =====
+
+// Rota para deletar usuário
+app.delete("/usuarios/:cpf", validarCPF('cpf'), async(req,res)=>{
+    try{
+        const sql = `DELETE FROM ONG.Usuario WHERE CPF = @cpf`;
+        await execQuerySafe(sql, [{ name: "cpf", type: mssql.VarChar(11), value: req.params.cpf }]);
+        return res.status(200).json({ message: "Conta deletada com sucesso." });
+    } catch(err){
+        console.error(err);
+        return res.status(500).json({ error: "Erro ao excluir conta." });
+    }
+});
+
+// ===== ROTAS DELETE - PETS (SOFT DELETE) =====
+
+// Rota para marcar pet como adotado
+app.delete("/pets/:id", async (req,res) => {
     try {
         const idPet = req.params.id;
         const sql = `UPDATE ONG.Pet SET status_adotado = 'adotado' WHERE id = @id`;
         await execQuerySafe(sql, [
             { name: "id", type: mssql.Int, value: idPet }
         ]);
-        return res.status(201).json({ message: "Pet marcado como adotado." });
+        return res.status(200).json({ message: "Pet marcado como adotado." });
     } catch(err) {
         console.error(err);
         return res.status(500).json({ error: "Erro ao marcar pet como adotado." });
     }
 });
 
-// ===== SERVER =====
+
+// ===== INICIALIZAÇÃO DO SERVIDOR =====
 app.listen(porta, (err) => {
     if (err) {
         console.log("Erro ao rodar servidor:", err);
@@ -336,4 +389,3 @@ app.listen(porta, (err) => {
     }
     console.log("Servidor rodando na porta " + porta + "!");
 });
-
