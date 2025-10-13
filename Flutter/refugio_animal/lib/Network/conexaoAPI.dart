@@ -154,8 +154,8 @@ class ApiService {
       body: jsonEncode({'usuario': cpf, 'senha': senha}), 
     ); // requisição post
 
-    if(response.statusCode == 200){
-      return response.statusCode == 200;
+    if(response.statusCode == 201){
+      return response.statusCode == 201;
     }
     else{
       throw Exception('Erro ao realizar login!');
