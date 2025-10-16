@@ -4,7 +4,7 @@ import 'usuario.dart';
 import 'pet.dart';         
 
 class ApiService {
-  static const String baseUrl = 'http://177.220.18.3:8081'; 
+  static const String baseUrl = 'http://177.220.18.22:8081';
 
 
   // GET /pets
@@ -158,7 +158,7 @@ class ApiService {
       return response.statusCode == 201;
     }
     else{
-      throw Exception('Erro ao realizar login!');
+      throw Exception('Credenciais inválidas');
     }                  
   }
   
