@@ -215,14 +215,14 @@ class _LoginScreenState extends State<LoginScreen> {
 class LogoSection extends StatelessWidget {
     const LogoSection({super.key});
 
-    static const String logoAssetPath = 'assets/Logo - Refugio Animal.png'; 
+    static const String logoAssetPath = 'assets/imagens/logo.png'; 
 
     @override
     Widget build(BuildContext context) {
         return Image.asset(
             logoAssetPath,
-            width: 180, 
-            height: 180, 
+            width: 350, 
+            height: 350, 
             fit: BoxFit.contain, 
         );
     }
@@ -478,7 +478,8 @@ class LoginFormCard extends StatelessWidget {
                 ),
                 TextButton(
                     onPressed: () {
-                        debugPrint("Navegar para a tela de Cadastro");
+                        //debugPrint("Navegar para a tela de Cadastro");
+                        Navigator.pushNamed(context, '/cadastroUser');
                     },
                     child: Text(
                         "Clique Aqui",
