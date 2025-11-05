@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 // Importação para usar TextInputFormatter
 import 'package:flutter/services.dart'; 
-// Importação da sua classe de serviço API
+// Importação da sua classe de serviço API (Verifique o caminho exato se for diferente)
 import 'package:refugio_animal/Network/conexaoAPI.dart'; 
 
 
@@ -113,6 +113,9 @@ class _LoginScreenState extends State<LoginScreen> {
             });
             return;
         }
+        
+        // Fechar o teclado antes de iniciar a chamada de rede (melhora a UX)
+        FocusScope.of(context).unfocus();
 
         setState(() {
             _isLoading = true;
@@ -122,6 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         try {
             // Chama o método da sua classe real, importada de conexaoAPI.dart
+            // NOTA: Certifique-se de que ApiService.loginUsuario está implementado em conexaoAPI.dart
             final success = await ApiService.loginUsuario(cpf, senha); 
 
             if (success) {
@@ -131,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     _isSuccess = true;
                 });
                 debugPrint('Login Bem-Sucedido!');
-                // TODO: Adicionar navegação para a tela principal aqui.
+                Navigator.pushNamed(context, '/home');
             } 
             else {
                 setState(() {
@@ -143,10 +147,11 @@ class _LoginScreenState extends State<LoginScreen> {
             String errorMsg;
             final errorText = e.toString();
             
+            // Trata erros específicos, como 401 (Não Autorizado)
             if (errorText.contains('401') || errorText.contains('Credenciais inválidas')) {
                 errorMsg = 'Credenciais inválidas.';
             } else {
-                errorMsg = 'Erro de conexão ou servidor.';
+                errorMsg = 'Erro de conexão ou servidor. Tente novamente.';
             }
             
             setState(() {
@@ -219,6 +224,8 @@ class LogoSection extends StatelessWidget {
 
     @override
     Widget build(BuildContext context) {
+        // Você pode usar o widget Image.asset ou NetworkImage, dependendo
+        // de onde sua logo está. Manter o Image.asset conforme o original.
         return Image.asset(
             logoAssetPath,
             width: 350, 
@@ -297,8 +304,8 @@ class LoginFormCard extends StatelessWidget {
         required this.isLoading,
         this.errorMessage,
         this.isSuccess = false,
-        required this.isPasswordVisible, // REQUERIDO
-        required this.toggleVisibility, // REQUERIDO
+        required this.isPasswordVisible, 
+        required this.toggleVisibility, 
     });
 
     @override
@@ -372,7 +379,7 @@ class LoginFormCard extends StatelessWidget {
         );
     }
 
-    // --- Funções de Componentes (Renomeadas para _private) ---
+    // --- Funções de Componentes ---
     Widget _buildTextField(
         String hintText, 
         {
@@ -478,7 +485,8 @@ class LoginFormCard extends StatelessWidget {
                 ),
                 TextButton(
                     onPressed: () {
-                        //debugPrint("Navegar para a tela de Cadastro");
+                        // Navega para a rota de cadastro. Certifique-se de que esta rota
+                        // ('/cadastroUser') está definida no seu MaterialApp principal.
                         Navigator.pushNamed(context, '/cadastroUser');
                     },
                     child: Text(
