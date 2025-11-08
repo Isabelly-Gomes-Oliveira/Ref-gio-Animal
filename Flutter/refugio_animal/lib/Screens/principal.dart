@@ -297,42 +297,53 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
   }
 
   Future<void> _loadPets() async {
-    try {
-      final pets = await ApiService.getPets();
-      setState(() {
-        _allPets = pets;
-        _filteredPets = pets;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      debugPrint('Erro ao carregar pets: $e');
-    }
+  try {
+    final pets = await ApiService.getPets();
+    
+    // NOVO FILTRO: Filtrar APENAS os pets com status_adotado 'Disponível'
+    final availablePets = pets.where((pet) => 
+        (pet.statusAdotado).toLowerCase() == 'disponível'
+    ).toList();
+    
+    setState(() {
+      _allPets = availablePets; // Armazena apenas os disponíveis
+      _filteredPets = availablePets; // Exibe os disponíveis inicialmente
+      _isLoading = false;
+    });
+  } catch (e) {
+    setState(() => _isLoading = false);
+    debugPrint('Erro ao carregar pets: $e');
   }
+}
 
   void _applyFilters() {
-    setState(() {
-      _filteredPets = _allPets.where((pet) {
-        final petEspecie = (pet.especie ?? '').toLowerCase();
-        final petRaca = (pet.raca ?? '').toLowerCase();
-        final petDef = (pet.deficiencia ?? '').toLowerCase();
-        final petIdade = pet.idade ?? 0;
+  setState(() {
+    _filteredPets = _allPets.where((pet) {
+      // FILTRO FIXO: Apenas pets com status_adotado 'Disponível'
+      final isAvailable = (pet.statusAdotado).toLowerCase() == 'disponível';
+      
+      // Filtros existentes
+      final petEspecie = (pet.especie ?? '').toLowerCase();
+      final petRaca = (pet.raca ?? '').toLowerCase();
+      final petDef = (pet.deficiencia ?? '').toLowerCase();
+      final petIdade = pet.idade ?? 0;
 
-        final matchEspecie =
-            _especie.isEmpty || petEspecie.contains(_especie.toLowerCase());
-        final matchRaca =
-            _raca.isEmpty || petRaca.contains(_raca.toLowerCase());
-        final matchDeficiencia = _deficiencia.isEmpty ||
-            (_deficiencia == 'Possui' ? petDef.isNotEmpty : petDef.isEmpty);
-        final matchIdade = _idade.isEmpty ||
-            (_idade == 'Filhote' && petIdade >= 0 && petIdade <= 2) ||
-            (_idade == 'Adulto' && petIdade >= 3 && petIdade <= 6) ||
-            (_idade == 'Idoso' && petIdade >= 7);
+      final matchEspecie =
+          _especie.isEmpty || petEspecie.contains(_especie.toLowerCase());
+      final matchRaca =
+          _raca.isEmpty || petRaca.contains(_raca.toLowerCase());
+      final matchDeficiencia = _deficiencia.isEmpty ||
+          (_deficiencia == 'Possui' ? petDef.isNotEmpty : petDef.isEmpty);
+      final matchIdade = _idade.isEmpty ||
+          (_idade == 'Filhote' && petIdade >= 0 && petIdade <= 2) ||
+          (_idade == 'Adulto' && petIdade >= 3 && petIdade <= 6) ||
+          (_idade == 'Idoso' && petIdade >= 7);
 
-        return matchEspecie && matchRaca && matchDeficiencia && matchIdade;
-      }).toList();
-    });
-  }
+      // NOVO: Adicione a condição isAvailable
+      return isAvailable && matchEspecie && matchRaca && matchDeficiencia && matchIdade;
+    }).toList();
+  });
+}
 
   @override
   Widget build(BuildContext context) {
