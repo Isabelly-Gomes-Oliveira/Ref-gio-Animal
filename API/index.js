@@ -78,13 +78,14 @@ function isCPFValido(cpf) {
 
 function validarCPF(campoCPF) {
     return (req, res, next) => {
-        const cpf = req.body[campoCPF] || req.params[campoCPF];
+        const cpf = (req.body && req.body[campoCPF]) || req.params[campoCPF];
         if (!cpf || !isCPFValido(cpf)) {
             return res.status(400).json({ error: "CPF inválido." });
         }
         next();
     };
 }
+
 
 
 // ##################################################################

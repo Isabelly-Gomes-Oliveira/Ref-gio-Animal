@@ -1,32 +1,30 @@
+// usuario.dart
 class Usuario {
   final String cpf;
   final String nome;
   final String? email;
-  final String senha;
   final String telefone;
 
   Usuario({
     required this.cpf,
     required this.nome,
     this.email,
-    required this.senha,
     required this.telefone,
   });
 
+  // Converte para JSON (caso precise enviar algum dia)
+  Map<String, dynamic> toJson() => {
+        'CPF': cpf,
+        'nome': nome,
+        'email': email,
+        'telefone': telefone,
+      };
 
-  Map<String, dynamic> toJson() => { // converte para JSON
-    'CPF': cpf,
-    'nome': nome,
-    'email': email,
-    'senha': senha,
-    'telefone': telefone,
-  }; 
-
-  factory Usuario.FromJson(Map<String, dynamic> json) => Usuario( // contrutor
-    cpf: json['cpf'] as String,
-    nome: json['nome'] as String,
-    email: json['email'] as String?,
-    senha: json['senha'] as String,
-    telefone: json['telefone'] as String,
-  );
+  // Factory corrigida para lidar com nulls e campos ausentes
+  factory Usuario.fromJson(Map<String, dynamic> json) => Usuario(
+        cpf: json['CPF'] ?? '', 
+        nome: json['nome'] ?? 'Sem nome',
+        email: json['email'] as String?,
+        telefone: json['telefone'] ?? 'Telefone não informado',
+      );
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 // Importação para usar TextInputFormatter
 import 'package:flutter/services.dart'; 
 // Importação da sua classe de serviço API (Verifique o caminho exato se for diferente)
+// Certifique-se que este arquivo define 'ApiService.loginUsuario'
 import 'package:refugio_animal/Network/conexaoAPI.dart'; 
 
 
@@ -20,7 +21,7 @@ const Color kSuccessTextColor = Color(0xFF388E3C);
 const double kMaxWidthDesktop = 400.0;
 
 // **********************************************
-// * FORMATTER PERSONALIZADO PARA CPF           *
+// * FORMATTER PERSONALIZADO PARA CPF           *
 // **********************************************
 class CpfInputFormatter extends TextInputFormatter {
     @override
@@ -115,7 +116,10 @@ class _LoginScreenState extends State<LoginScreen> {
         }
         
         // Fechar o teclado antes de iniciar a chamada de rede (melhora a UX)
-        FocusScope.of(context).unfocus();
+        // Verifique se o contexto ainda é válido antes de usá-lo
+        if (mounted) {
+          FocusScope.of(context).unfocus();
+        }
 
         setState(() {
             _isLoading = true;
@@ -128,6 +132,11 @@ class _LoginScreenState extends State<LoginScreen> {
             // NOTA: Certifique-se de que ApiService.loginUsuario está implementado em conexaoAPI.dart
             final success = await ApiService.loginUsuario(cpf, senha); 
 
+            // --- CORREÇÃO IMPORTANTE ---
+            // Verifique se o widget ainda está montado ANTES de usar
+            // o setState ou o Navigator após o await.
+            if (!mounted) return;
+
             if (success) {
                 // Login bem-sucedido: Define a mensagem de sucesso
                 setState(() {
@@ -135,6 +144,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     _isSuccess = true;
                 });
                 debugPrint('Login Bem-Sucedido!');
+                
+                // Agora a navegação deve funcionar
                 Navigator.pushNamed(context, '/home');
             } 
             else {
@@ -154,12 +165,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 errorMsg = 'Erro de conexão ou servidor. Tente novamente.';
             }
             
+            // --- CORREÇÃO IMPORTANTE ---
+            // Verifique se está montado antes de dar setState no erro
+            if (!mounted) return;
             setState(() {
                 _errorMessage = errorMsg;
                 _isSuccess = false;
             });
             debugPrint('Erro na API: ${e.toString()}');
         } finally {
+            // --- CORREÇÃO IMPORTANTE ---
+            // Verifique se está montado antes de parar o loading
+            if (!mounted) return;
             setState(() {
                 _isLoading = false;
             });
@@ -236,7 +253,7 @@ class LogoSection extends StatelessWidget {
 }
 
 // **********************************************
-// * WIDGET PARA EXIBIR MENSAGEM DE FEEDBACK    *
+// * WIDGET PARA EXIBIR MENSAGEM DE FEEDBACK    *
 // **********************************************
 class FeedbackMessage extends StatelessWidget {
     final String message;
@@ -282,7 +299,7 @@ class FeedbackMessage extends StatelessWidget {
 
 
 // **********************************************
-// * WIDGET DO CARD DO FORMULÁRIO (ATUALIZADO)  *
+// * WIDGET DO CARD DO FORMULÁRIO (ATUALIZADO)  *
 // **********************************************
 class LoginFormCard extends StatelessWidget {
     final TextEditingController cpfController;

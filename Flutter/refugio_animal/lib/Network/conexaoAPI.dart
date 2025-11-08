@@ -1,10 +1,12 @@
 import 'dart:convert'; // para converter entre objetos Dart e JSON (string)        
+import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http; 
 import 'usuario.dart';         
+import 'package:flutter/foundation.dart';
 import 'pet.dart';         
 
 class ApiService {
-  static const String baseUrl = 'http://177.220.18.22:8081';
+  static const String baseUrl = 'http://localhost:8081';
 
 
   // GET /pets
@@ -66,9 +68,6 @@ class ApiService {
     }
   }
 
-
-
-
   // GET /pets/deficiencia/:deficiencia
   static Future<List<Pet>> getPetsByDeficiencia(String deficiencia) async { // retorna lista de pets com a deficiência
     final encoded = Uri.encodeComponent(deficiencia);   // codifica o nome da deficiência para não dar problema com espaços/caracteres especiais na URL    
@@ -82,7 +81,33 @@ class ApiService {
     }
   }
 
+// GET /usuarios/cpf/:cpf
+  static Future<Usuario> getUsuarioByCpf(String cpf) async {
+    try {
+      // Remove espaços extras
+      final cleanedCpf = cpf.trim();
+      if (cleanedCpf.isEmpty) {
+        throw Exception('CPF vazio fornecido.');
+      }
 
+      final encodedCpf = Uri.encodeComponent(cleanedCpf);
+      final url = Uri.parse('$baseUrl/usuarios/$encodedCpf');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return Usuario.fromJson(data);
+      } else if (response.statusCode == 404) {
+        throw Exception('Usuário com CPF $cleanedCpf não encontrado.');
+      } else {
+        throw Exception(
+            'Erro desconhecido ao buscar usuário pelo CPF $cleanedCpf. Status: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Erro em getUsuarioByCpf: $e');
+      rethrow; // mantém o erro pra ser tratado na UI
+    }
+  }
 
 
   // POST /cadastro/usuario
