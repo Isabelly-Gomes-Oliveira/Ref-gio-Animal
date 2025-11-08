@@ -672,7 +672,7 @@ Widget _buildBottomNavigationBar() {
             Navigator.pushNamed(context, '/cadastroPet');
           },
           icon: Icon(
-            Icons.add,
+            Icons.add_circle_outline,
             size: 30,
             color: _selectedIndex == 0 ? Colors.black : Colors.black54,
           ),
