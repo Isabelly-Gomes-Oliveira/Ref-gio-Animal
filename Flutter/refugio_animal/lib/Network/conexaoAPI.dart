@@ -81,6 +81,18 @@ class ApiService {
     }
   }
 
+static Future<List<Pet>> getPetsByCpf(String cpf) async {
+    final response = await http.get(Uri.parse('$baseUrl/pets/cpf/$cpf'));
+
+    if (response.statusCode == 200) {
+      // O endpoint /pets/cpf/:cpf retorna uma LISTA de objetos
+      final List<dynamic> jsonList = jsonDecode(response.body);
+      return jsonList.map((json) => Pet.fromJson(json)).toList();
+    } else {
+      throw Exception('Falha ao carregar pets do usuário: ${response.statusCode}');
+    }
+  }
+
 // GET /usuarios/cpf/:cpf
   static Future<Usuario> getUsuarioByCpf(String cpf) async {
     try {

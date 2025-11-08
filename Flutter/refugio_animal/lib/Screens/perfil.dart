@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:refugio_animal/Network/conexaoAPI.dart'; 
+import 'package:refugio_animal/Network/conexaoAPI.dart';
 import 'package:refugio_animal/Network/pet.dart';
-import 'package:refugio_animal/Network/usuario.dart'; 
-import 'package:refugio_animal/Screens/cadastropet.dart'; 
-import 'package:refugio_animal/Screens/perfil.dart';    
-import 'dart:io';
+import 'package:refugio_animal/Network/usuario.dart';
+// import 'package:refugio_animal/Screens/cadastropet.dart'; // Removido por não ser usado
+// import 'package:refugio_animal/Screens/perfil.dart'; // Removido (auto-importação)
+// import 'dart:io'; // Removido por não ser usado
 
 // --- Cores Personalizadas ---
 const Color kBackgroundColor = Color(0xFFF8E9D2); // Cor de fundo do corpo
@@ -19,16 +19,18 @@ const Color kFilterButtonColor = Color(0xFF62739D); // Cor para botões e rodap�
 // ===================================================================
 
 class TelaPerfil extends StatefulWidget {
-  const TelaPerfil({super.key});
+  final String cpfUsuario;
+
+  const TelaPerfil({
+    super.key,
+    required this.cpfUsuario,
+  });
 
   @override
   State<TelaPerfil> createState() => _TelaPerfilState();
 }
 
 class _TelaPerfilState extends State<TelaPerfil> {
-  // CPF de demonstração. Em um app real, este valor viria da tela de login/autenticação.
-  static const String _cpfUsuarioLogado = '81767286678'; 
-  
   Usuario? _usuarioLogado;
   List<Pet> _meusPets = [];
   bool _isLoading = true;
@@ -41,7 +43,6 @@ class _TelaPerfilState extends State<TelaPerfil> {
     _fetchUserData();
   }
 
-  // --- Função para buscar dados do usuário e seus pets (COM FILTRO LOCAL) ---
   Future<void> _fetchUserData() async {
     setState(() {
       _isLoading = true;
@@ -49,17 +50,17 @@ class _TelaPerfilState extends State<TelaPerfil> {
     });
 
     try {
-      // 1. Buscar dados do usuário
-      final user = await ApiService.getUsuarioByCpf(_cpfUsuarioLogado);
-      
-      // 2. Buscar TODOS os pets disponíveis na API
-      final allPets = await ApiService.getPets();
+      final String cpf = widget.cpfUsuario;
+      final results = await Future.wait([
+        ApiService.getUsuarioByCpf(cpf),
+        ApiService.getPetsByCpf(cpf),
+      ]);
 
-      // 3. Filtrar os pets localmente onde o cpfDoador é igual ao cpf do usuário logado
-      final filteredPets = allPets
-          .where((pet) => pet.cpfDoador == _cpfUsuarioLogado)
-          .toList();
+      final user = results[0] as Usuario;
+      final filteredPets = results[1] as List<Pet>;
 
+      // Verificação de 'mounted' para evitar erros após o await
+      if (!mounted) return;
       setState(() {
         _usuarioLogado = user;
         _meusPets = filteredPets;
@@ -67,6 +68,7 @@ class _TelaPerfilState extends State<TelaPerfil> {
       });
     } catch (e) {
       debugPrint('Erro ao carregar dados do perfil: $e');
+      if (!mounted) return;
       setState(() {
         _error = 'Erro ao carregar dados. Tente novamente mais tarde.';
         _isLoading = false;
@@ -74,8 +76,6 @@ class _TelaPerfilState extends State<TelaPerfil> {
     }
   }
 
-
-  // --- Função para exibir o modal de confirmação de desconexão ---
   void _showLogoutConfirmation(BuildContext context) {
     showDialog(
       context: context,
@@ -92,9 +92,7 @@ class _TelaPerfilState extends State<TelaPerfil> {
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Fechar o modal
-                // TODO: Implementar a lógica de logout (ApiService.logout)
-                // Exemplo de navegação após logout
+                // Navega para o login e remove todas as telas anteriores
                 Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
               },
               child: const Text('Sair', style: TextStyle(color: kReturnButtonColor, fontWeight: FontWeight.bold)),
@@ -105,51 +103,58 @@ class _TelaPerfilState extends State<TelaPerfil> {
     );
   }
 
+  // ===================================================================
+  // BUILD METHOD (PRINCIPAL)
+  // ===================================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
       body: Stack(
         children: [
-          // 1. Área central de conteúdo
-          Center(
+          // 1. FUNDO ROXO (TELA CHEIA)
+          Container(
+            color: kCardColor.withOpacity(0.7), // A "parte roxa"
+          ),
+
+          // 2. CONTEÚDO (COM SAFEAREA)
+          SafeArea(
+            bottom: false,
+            child: _buildContent(),
+          ),
+
+          // 3. BARRA BEGE DO TOPO COM BOTÕES
+          SafeArea(
+            bottom: false,
             child: Container(
-              width: MediaQuery.of(context).size.width * 0.9,
-              height: MediaQuery.of(context).size.height * 0.8,
-              padding: const EdgeInsets.all(25.0),
-              decoration: BoxDecoration(
-                color: kCardColor.withOpacity(0.7), // Cor base da imagem
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: kPrimaryColor.withOpacity(0.5), width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: kPrimaryColor.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
+              color: kBackgroundColor,
+              height: 80,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned(
+                    top: 15,
+                    left: 20,
+                    child: _buildReturnButton(context),
+                  ),
+                  Positioned(
+                    top: 5,
+                    right: 20,
+                    child: _buildAppLogo(), // Usa a logo agora com 'siso.png'
                   ),
                 ],
               ),
-              child: _buildContent(), // Conteúdo principal (Loading, Erro ou Dados)
             ),
-          ),
-
-          // 2. Elementos Fixos (Topo)
-          Positioned(
-            top: 40,
-            left: 20,
-            child: _buildReturnButton(context),
-          ),
-          Positioned(
-            top: 30,
-            right: 20,
-            child: _buildAppLogo(),
           ),
         ],
       ),
-      // 3. Rodapé (BottomNavigationBar)
       bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
+  // ===================================================================
+  // FIM DO BUILD METHOD
+  // ===================================================================
+
 
   // --- Lógica de exibição de conteúdo ---
   Widget _buildContent() {
@@ -162,7 +167,14 @@ class _TelaPerfilState extends State<TelaPerfil> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(_error!, style: const TextStyle(color: kReturnButtonColor, fontSize: 18)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40.0),
+              child: Text(
+                _error!, 
+                style: const TextStyle(color: kReturnButtonColor, fontSize: 18), 
+                textAlign: TextAlign.center,
+              ),
+            ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _fetchUserData,
@@ -174,7 +186,6 @@ class _TelaPerfilState extends State<TelaPerfil> {
       );
     }
     
-    // Se não está carregando e não tem erro, exibe os dados (que podem ser nulos)
     final user = _usuarioLogado;
 
     if (user == null) {
@@ -187,19 +198,17 @@ class _TelaPerfilState extends State<TelaPerfil> {
       );
     }
 
-    // Conteúdo com os dados reais
     return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 25.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 50), // Espaço para a logo/retorno
+          const SizedBox(height: 105),
           
-          // --- Imagem/Ícone do Usuário ---
           _buildUserImage(),
           const SizedBox(height: 20),
 
-          // --- Informações do Usuário ---
           Text(
             user.nome ?? 'Usuário sem Nome',
             style: const TextStyle(
@@ -210,20 +219,27 @@ class _TelaPerfilState extends State<TelaPerfil> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 5),
-          _buildInfoRow('Telefone:', user.telefone ?? 'Não Informado', isRequired: true),
-          _buildInfoRow('Email:', user.email ?? 'Não Informado', isRequired: true),
+          _buildInfoRow(
+            'Telefone:', 
+            _formatarTelefone(user.telefone ?? 'Não Informado'), 
+          ),
+          _buildInfoRow(
+            'Email:', 
+            user.email ?? 'Não Informado', 
+          ),
+          _buildInfoRow(
+            'CPF:', 
+            _formatarCPF(user.cpf ?? widget.cpfUsuario)
+          ),
           const SizedBox(height: 30),
 
-          // --- Seção "Meus Pets" ---
           _buildMyPetsSection(),
           const SizedBox(height: 40),
 
-          // --- Botões de Ação ---
           _buildActionButton(
             'Alterar Dados do Usuário',
             () {
-              // TODO: Implementar navegação para a tela de edição
-              debugPrint('Navegar para Alterar Dados (CPF: ${user.cpf})');
+              debugPrint('Navegar para Alterar Dados (CPF: ${user.cpf ?? widget.cpfUsuario})');
             },
             kPrimaryColor,
           ),
@@ -233,14 +249,34 @@ class _TelaPerfilState extends State<TelaPerfil> {
             () => _showLogoutConfirmation(context),
             kReturnButtonColor,
           ),
+          
+          const SizedBox(height: 30),
         ],
       ),
     );
   }
 
   // ===================================================================
-  // WIDGETS AUXILIARES
+  // WIDGETS AUXILIARES E FORMATAÇÃO (com ajuste na logo)
   // ===================================================================
+
+  String _formatarCPF(String cpf) {
+    final digits = cpf.replaceAll(RegExp(r'[^\d]'), '');
+    if (digits.length != 11) {
+      return cpf;
+    }
+    return '${digits.substring(0, 3)}.${digits.substring(3, 6)}.${digits.substring(6, 9)}-${digits.substring(9, 11)}';
+  }
+
+  String _formatarTelefone(String telefone) {
+    final digits = telefone.replaceAll(RegExp(r'[^\d]'), '');
+    if (digits.length == 11) {
+      return '(${digits.substring(0, 2)}) ${digits.substring(2, 7)}-${digits.substring(7, 11)}';
+    } else if (digits.length == 10) {
+      return '(${digits.substring(0, 2)}) ${digits.substring(2, 6)}-${digits.substring(6, 10)}';
+    }
+    return telefone;
+  }
 
   Widget _buildUserImage() {
     return Container(
@@ -278,14 +314,6 @@ class _TelaPerfilState extends State<TelaPerfil> {
             ),
           ),
           TextSpan(
-            text: isRequired ? '* ' : '',
-            style: const TextStyle(
-              fontSize: 18,
-              color: kReturnButtonColor,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          TextSpan(
             text: value,
             style: const TextStyle(
               fontSize: 18,
@@ -311,33 +339,28 @@ class _TelaPerfilState extends State<TelaPerfil> {
           ),
         ),
         const SizedBox(height: 15),
-        
-        // Linha divisória roxo escuro
         Container(
           height: 1,
           width: 150,
           color: kPrimaryColor,
           margin: const EdgeInsets.only(bottom: 20),
         ),
-
-        // Lista Horizontal de Pets
         SizedBox(
           height: 110, // Altura para o card e o nome
           child: _meusPets.isEmpty
-            ? Center(
-                child: Text(
-                  'Você ainda não cadastrou nenhum pet.',
-                  style: TextStyle(color: kPrimaryColor.withOpacity(0.8)),
+              ? Center(
+                  child: Text(
+                    'Você ainda não cadastrou nenhum pet.',
+                    style: TextStyle(color: kPrimaryColor.withOpacity(0.8)),
+                  ),
+                )
+              : ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _meusPets.length,
+                  itemBuilder: (context, index) {
+                    return _buildPetMiniCard(_meusPets[index]);
+                  },
                 ),
-              )
-            : ListView.builder(
-              scrollDirection: Axis.horizontal,
-              shrinkWrap: true,
-              itemCount: _meusPets.length,
-              itemBuilder: (context, index) {
-                return _buildPetMiniCard(_meusPets[index]);
-              },
-            ),
         ),
       ],
     );
@@ -368,15 +391,40 @@ class _TelaPerfilState extends State<TelaPerfil> {
                   ],
                 ),
                 child: pet.imagem != null && pet.imagem!.isNotEmpty
-                    // Se você tivesse o widget Image.network ou Image.memory, usaria aqui.
-                    ? const Icon(Icons.photo, size: 40, color: Colors.grey)
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(9.0),
+                        child: Image.network(
+                          pet.imagem!,
+                          fit: BoxFit.cover,
+                          width: 80,
+                          height: 80,
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: kPrimaryColor,
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child: Icon(
+                                Icons.pets,
+                                size: 40,
+                                color: kPrimaryColor,
+                              ),
+                            );
+                          },
+                        ),
+                      )
                     : const Center(
-                      child: Icon(
-                        Icons.pets, // Ícone de pet placeholder
-                        size: 40,
-                        color: kPrimaryColor,
+                        child: Icon(
+                          Icons.pets,
+                          size: 40,
+                          color: kPrimaryColor,
+                        ),
                       ),
-                    ),
               ),
               // Ícone de Engrenagem (Canto Superior Esquerdo)
               Positioned(
@@ -455,6 +503,7 @@ class _TelaPerfilState extends State<TelaPerfil> {
   }
 
   Widget _buildAppLogo() {
+    // ALTERAÇÃO: Usando Image.asset com 'siso.png'
     return Container(
       width: 70,
       height: 70,
@@ -463,9 +512,13 @@ class _TelaPerfilState extends State<TelaPerfil> {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: kPrimaryColor.withOpacity(0.5)),
       ),
-      child: const Center(
-        // Ícone corrigido!
-        child: Icon(Icons.house_rounded, size: 40, color: kPrimaryColor), 
+      child: Center(
+        child: Image.asset(
+          'assets/imagens/logo.png', // Caminho atualizado para siso.png
+          width: 50, // Ajuste o tamanho conforme necessário
+          height: 50, // Ajuste o tamanho conforme necessário
+          fit: BoxFit.contain,
+        ),
       ),
     );
   }
@@ -474,48 +527,54 @@ class _TelaPerfilState extends State<TelaPerfil> {
     return Container(
       color: kCardColor, // Cor de fundo do rodapé conforme o tema visual
       padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          // Ícone Adicionar
-          IconButton(
-            onPressed: () {
-              setState(() => _selectedIndex = 0);
-              // TODO: Implementar navegação
-              Navigator.pushNamed(context, '/cadastroPet');
-            },
-            icon: Icon(
-              Icons.add_circle_outline,
-              size: 30,
-              color: _selectedIndex == 0 ? kPrimaryColor : Colors.black54,
+      child: SafeArea(
+        top: false, 
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // Ícone Adicionar
+            IconButton(
+              onPressed: () {
+                setState(() => _selectedIndex = 0);
+                Navigator.pushNamed(context, '/cadastroPet');
+              },
+              icon: Icon(
+                Icons.add_circle_outline,
+                size: 30,
+                color: _selectedIndex == 0 ? kPrimaryColor : Colors.black54,
+              ),
             ),
-          ),
-          // Ícone Home
-          IconButton(
-            onPressed: () {
-              setState(() => _selectedIndex = 1);
-              // TODO: Implementar navegação
-              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-            },
-            icon: Icon(
-              Icons.home,
-              size: 30,
-              color: _selectedIndex == 1 ? kPrimaryColor : Colors.black54,
+            // Ícone Home
+            IconButton(
+              onPressed: () {
+                setState(() => _selectedIndex = 1);
+                Navigator.pushNamedAndRemoveUntil(
+                  context, 
+                  '/home', 
+                  (route) => false,
+                  arguments: widget.cpfUsuario,
+                );
+              },
+              icon: Icon(
+                Icons.home,
+                size: 30,
+                color: _selectedIndex == 1 ? kPrimaryColor : Colors.black54,
+              ),
             ),
-          ),
-          // Ícone Perfil (Ativo)
-          IconButton(
-            onPressed: () {
-              setState(() => _selectedIndex = 2);
-              // Já estamos na tela de perfil
-            },
-            icon: Icon(
-              Icons.person,
-              size: 30,
-              color: _selectedIndex == 2 ? kPrimaryColor : Colors.black54,
+            // Ícone Perfil (Ativo)
+            IconButton(
+              onPressed: () {
+                setState(() => _selectedIndex = 2);
+                // Já estamos na tela de perfil, não faz nada
+              },
+              icon: Icon(
+                Icons.person,
+                size: 30,
+                color: _selectedIndex == 2 ? kPrimaryColor : Colors.black54,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

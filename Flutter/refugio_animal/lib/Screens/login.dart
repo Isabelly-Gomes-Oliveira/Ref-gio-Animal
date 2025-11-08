@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 // Importação para usar TextInputFormatter
-import 'package:flutter/services.dart'; 
-// Importação da sua classe de serviço API (Verifique o caminho exato se for diferente)
-// Certifique-se que este arquivo define 'ApiService.loginUsuario'
-import 'package:refugio_animal/Network/conexaoAPI.dart'; 
+import 'package:flutter/services.dart';
+// Importação da sua classe de serviço API
+import 'package:refugio_animal/Network/conexaoAPI.dart';
 
 
 // --- Cores Personalizadas (Mantidas) ---
-const Color kBackgroundColor = Color(0xFFF8E9D2); 
+const Color kBackgroundColor = Color(0xFFF8E9D2);
 const Color kCardColorBase = Color(0xFF62739D);
-const Color kPrimaryColor = Color(0xFF48526E); 
-const Color kBorderColor = Color(0xFF1A2A50); 
-const Color kLinkColor = Color(0xFF1A2A50); 
-const Color kInputFillColor = Color(0xFFD9D9D9); 
-const Color kInputTextColor = Color(0xFF48526E); 
-const Color kErrorTextColor = Color(0xFFD32F2F); 
-const Color kSuccessTextColor = Color(0xFF388E3C); 
+const Color kPrimaryColor = Color(0xFF48526E);
+const Color kBorderColor = Color(0xFF1A2A50);
+const Color kLinkColor = Color(0xFF1A2A50);
+const Color kInputFillColor = Color(0xFFD9D9D9);
+const Color kInputTextColor = Color(0xFF48526E);
+const Color kErrorTextColor = Color(0xFFD32F2F);
+const Color kSuccessTextColor = Color(0xFF388E3C);
 
 // Largura máxima solicitada (400.0)
 const double kMaxWidthDesktop = 400.0;
@@ -46,12 +45,12 @@ class CpfInputFormatter extends TextInputFormatter {
             newText += text[i];
         }
         
-        // Limita o tamanho máximo (11 dígitos + 3 pontos + 1 traço = 14 caracteres)
+        // Limita o tamanho máximo (11 dígitos + 2 pontos + 1 traço = 14 caracteres)
         if (newText.length > 14) {
             newText = newText.substring(0, 14);
         }
 
-        // Calcula a posição do cursor para que ele fique no final ou após o último caractere digitado
+        // Calcula a posição do cursor
         int cursorPosition = newText.length;
 
         return TextEditingValue(
@@ -81,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
     
     // Variáveis de estado para feedback do usuário
     bool _isLoading = false;
-    String? _errorMessage; 
+    String? _errorMessage;
     bool _isSuccess = false;
 
     // Função que alterna o estado de visibilidade da senha
@@ -94,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // Função que chama a API de Login
     Future<void> _handleLogin() async {
         // Remove a formatação para enviar apenas os dígitos para a API
-        final cpf = _cpfController.text.replaceAll(RegExp(r'[^\d]'), '').trim(); 
+        final cpf = _cpfController.text.replaceAll(RegExp(r'[^\d]'), '').trim();
         final senha = _senhaController.text.trim();
 
         // 1. Validação de campos vazios
@@ -115,8 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
             return;
         }
         
-        // Fechar o teclado antes de iniciar a chamada de rede (melhora a UX)
-        // Verifique se o contexto ainda é válido antes de usá-lo
+        // Fechar o teclado
         if (mounted) {
           FocusScope.of(context).unfocus();
         }
@@ -129,10 +127,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
         try {
             // Chama o método da sua classe real, importada de conexaoAPI.dart
-            // NOTA: Certifique-se de que ApiService.loginUsuario está implementado em conexaoAPI.dart
-            final success = await ApiService.loginUsuario(cpf, senha); 
+            final success = await ApiService.loginUsuario(cpf, senha);
 
-            // --- CORREÇÃO IMPORTANTE ---
             // Verifique se o widget ainda está montado ANTES de usar
             // o setState ou o Navigator após o await.
             if (!mounted) return;
@@ -143,10 +139,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     _errorMessage = 'Login Bem-Sucedido!';
                     _isSuccess = true;
                 });
-                debugPrint('Login Bem-Sucedido!');
+                debugPrint('Login Bem-Sucedido! Navegando para /home com CPF: $cpf');
                 
-                // Agora a navegação deve funcionar
-                Navigator.pushNamed(context, '/home');
+                // --- CORREÇÃO CRÍTICA DE NAVEGAÇÃO ---
+                // Navega para a rota /home E passa o CPF como argumento.
+                // Usamos 'pushNamedAndRemoveUntil' para que o usuário
+                // não possa "voltar" para a tela de login.
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/home',
+                  (route) => false, // Remove todas as telas anteriores
+                  arguments: cpf,    // <--- CORREÇÃO: Passa o CPF para a rota /home
+                );
+
             } 
             else {
                 setState(() {
@@ -158,15 +163,13 @@ class _LoginScreenState extends State<LoginScreen> {
             String errorMsg;
             final errorText = e.toString();
             
-            // Trata erros específicos, como 401 (Não Autorizado)
+            // Trata erros específicos
             if (errorText.contains('401') || errorText.contains('Credenciais inválidas')) {
                 errorMsg = 'Credenciais inválidas.';
             } else {
                 errorMsg = 'Erro de conexão ou servidor. Tente novamente.';
             }
             
-            // --- CORREÇÃO IMPORTANTE ---
-            // Verifique se está montado antes de dar setState no erro
             if (!mounted) return;
             setState(() {
                 _errorMessage = errorMsg;
@@ -174,8 +177,6 @@ class _LoginScreenState extends State<LoginScreen> {
             });
             debugPrint('Erro na API: ${e.toString()}');
         } finally {
-            // --- CORREÇÃO IMPORTANTE ---
-            // Verifique se está montado antes de parar o loading
             if (!mounted) return;
             setState(() {
                 _isLoading = false;
@@ -192,9 +193,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 alignment: Alignment.topCenter,
                 child: ConstrainedBox(
                     constraints: const BoxConstraints(
-                        maxWidth: kMaxWidthDesktop, 
+                        maxWidth: kMaxWidthDesktop,
                     ),
-                    child: SingleChildScrollView( 
+                    child: SingleChildScrollView(
                         padding: const EdgeInsets.only(top: 60.0, left: 20.0, right: 20.0, bottom: 20.0),
                         child: Column(
                             mainAxisAlignment: MainAxisAlignment.start,
@@ -202,9 +203,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 // 1. Área da Logo
                                 const LogoSection(),
                                 
-                                const SizedBox(height: 15), 
+                                const SizedBox(height: 15),
 
-                                // 2. Card do Formulário de Login (PASSANDO O NOVO ESTADO E FUNÇÃO)
+                                // 2. Card do Formulário de Login
                                 LoginFormCard(
                                     cpfController: _cpfController,
                                     senhaController: _senhaController,
@@ -213,9 +214,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     errorMessage: _errorMessage,
                                     isSuccess: _isSuccess,
                                     
-                                    // NOVO: Passando o estado e a função para o card
-                                    isPasswordVisible: _isPasswordVisible, 
-                                    toggleVisibility: _togglePasswordVisibility, 
+                                    isPasswordVisible: _isPasswordVisible,
+                                    toggleVisibility: _togglePasswordVisibility,
                                 ),
                             ],
                         ),
@@ -237,17 +237,29 @@ class _LoginScreenState extends State<LoginScreen> {
 class LogoSection extends StatelessWidget {
     const LogoSection({super.key});
 
-    static const String logoAssetPath = 'assets/imagens/logo.png'; 
+    static const String logoAssetPath = 'assets/imagens/logo.png';
 
     @override
     Widget build(BuildContext context) {
-        // Você pode usar o widget Image.asset ou NetworkImage, dependendo
-        // de onde sua logo está. Manter o Image.asset conforme o original.
         return Image.asset(
             logoAssetPath,
-            width: 350, 
-            height: 350, 
-            fit: BoxFit.contain, 
+            width: 350,
+            height: 350,
+            fit: BoxFit.contain,
+            // Adicionado um 'errorBuilder' para o caso da imagem não carregar
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: 350,
+                height: 350,
+                color: kInputFillColor,
+                child: const Center(
+                  child: Text(
+                    'Logo não encontrada', 
+                    style: TextStyle(color: kErrorTextColor)
+                  ),
+                ),
+              );
+            },
         );
     }
 }
@@ -273,9 +285,9 @@ class FeedbackMessage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0),
             margin: const EdgeInsets.only(bottom: 15.0),
             decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9), 
+                color: Colors.white.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(color: color, width: 1.5), 
+                border: Border.all(color: color, width: 1.5),
                 boxShadow: [
                     BoxShadow(
                         color: color.withOpacity(0.2),
@@ -306,7 +318,7 @@ class LoginFormCard extends StatelessWidget {
     final TextEditingController senhaController;
     final VoidCallback onLoginPressed;
     final bool isLoading;
-    final String? errorMessage; 
+    final String? errorMessage;
     final bool isSuccess;
     
     // NOVOS CAMPOS PARA VISIBILIDADE DA SENHA
@@ -321,8 +333,8 @@ class LoginFormCard extends StatelessWidget {
         required this.isLoading,
         this.errorMessage,
         this.isSuccess = false,
-        required this.isPasswordVisible, 
-        required this.toggleVisibility, 
+        required this.isPasswordVisible,
+        required this.toggleVisibility,
     });
 
     @override
@@ -330,9 +342,9 @@ class LoginFormCard extends StatelessWidget {
         return Container(
             padding: const EdgeInsets.all(25.0),
             decoration: BoxDecoration(
-                color: kCardColorBase.withOpacity(0.6), 
+                color: kCardColorBase.withOpacity(0.6),
                 borderRadius: BorderRadius.circular(15.0),
-                border: Border.all(color: kBorderColor, width: 2), 
+                border: Border.all(color: kBorderColor, width: 2),
                 boxShadow: [
                     BoxShadow(
                         color: kPrimaryColor.withOpacity(0.4),
@@ -349,25 +361,25 @@ class LoginFormCard extends StatelessWidget {
                         "Login",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                            color: kInputTextColor, 
+                            color: kInputTextColor,
                             fontSize: 22,
-                            fontWeight: FontWeight.w700, 
+                            fontWeight: FontWeight.w700,
                         ),
                     ),
                     const SizedBox(height: 20),
 
                     // CAMPO DE USUÁRIO (CPF)
                     _buildTextField(
-                        "Digite seu usuário (CPF)", 
+                        "Digite seu usuário (CPF)",
                         controller: cpfController,
                         isCpf: true,
                     ),
                     const SizedBox(height: 15),
 
-                    // CAMPO DE SENHA (AGORA PASSANDO ESTADO E FUNÇÃO)
+                    // CAMPO DE SENHA
                     _buildTextField(
-                        "Digite sua senha", 
-                        controller: senhaController, 
+                        "Digite sua senha",
+                        controller: senhaController,
                         isPassword: true,
                         isPasswordVisible: isPasswordVisible,
                         toggleVisibility: toggleVisibility,
@@ -375,7 +387,7 @@ class LoginFormCard extends StatelessWidget {
                     const SizedBox(height: 30),
                     
                     // MENSAGEM DE FEEDBACK (Erro ou Sucesso)
-                    if (errorMessage != null) 
+                    if (errorMessage != null)
                         FeedbackMessage(
                             message: errorMessage!,
                             isSuccess: isSuccess,
@@ -398,12 +410,11 @@ class LoginFormCard extends StatelessWidget {
 
     // --- Funções de Componentes ---
     Widget _buildTextField(
-        String hintText, 
+        String hintText,
         {
-            required TextEditingController controller, 
+            required TextEditingController controller,
             bool isPassword = false,
             bool isCpf = false,
-            // NOVOS PARÂMETROS
             bool isPasswordVisible = false,
             VoidCallback? toggleVisibility,
         }
@@ -415,16 +426,15 @@ class LoginFormCard extends StatelessWidget {
         final suffixIcon = isPassword ? IconButton(
             icon: Icon(
                 // Alterna entre o ícone de olho aberto e fechado
-                isPasswordVisible ? Icons.visibility : Icons.visibility_off, 
+                isPasswordVisible ? Icons.visibility : Icons.visibility_off,
                 color: kInputTextColor.withOpacity(0.7),
             ),
             onPressed: toggleVisibility,
         ) : null;
 
         return TextField(
-            controller: controller, 
-            // Usa o estado calculado
-            obscureText: shouldObscure, 
+            controller: controller,
+            obscureText: shouldObscure,
             cursorColor: kInputTextColor,
             keyboardType: isCpf ? TextInputType.number : TextInputType.text,
             inputFormatters: isCpf ? [
@@ -439,13 +449,12 @@ class LoginFormCard extends StatelessWidget {
                     fontSize: 15,
                 ),
                 filled: true,
-                fillColor: kInputFillColor, 
+                fillColor: kInputFillColor,
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0), 
-                    borderSide: BorderSide.none, 
+                    borderRadius: BorderRadius.circular(10.0),
+                    borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 15.0), 
-                // Adiciona o ícone de visibilidade
+                contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 15.0),
                 suffixIcon: suffixIcon,
             ),
             style: const TextStyle(color: kInputTextColor, fontSize: 16),
@@ -461,15 +470,15 @@ class LoginFormCard extends StatelessWidget {
             child: ElevatedButton(
                 onPressed: onPressed,
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimaryColor, 
-                    padding: const EdgeInsets.symmetric(vertical: 16), 
+                    backgroundColor: kPrimaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10), 
+                        borderRadius: BorderRadius.circular(10),
                     ),
-                    elevation: 0, 
+                    elevation: 0,
                 ),
                 child: isLoading
-                    ? const SizedBox( 
+                    ? const SizedBox(
                         width: 24,
                         height: 24,
                         child: CircularProgressIndicator(
@@ -477,10 +486,10 @@ class LoginFormCard extends StatelessWidget {
                             strokeWidth: 3,
                         ),
                     )
-                    : Text( 
+                    : Text(
                         text,
                         style: const TextStyle(
-                            color: Colors.white, 
+                            color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                         ),
@@ -495,21 +504,20 @@ class LoginFormCard extends StatelessWidget {
                 Text(
                     "Não possui uma conta?",
                     style: TextStyle(
-                        color: kLinkColor.withOpacity(0.9), 
+                        color: kLinkColor.withOpacity(0.9),
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                     ),
                 ),
                 TextButton(
                     onPressed: () {
-                        // Navega para a rota de cadastro. Certifique-se de que esta rota
-                        // ('/cadastroUser') está definida no seu MaterialApp principal.
+                        // Navega para a rota de cadastro.
                         Navigator.pushNamed(context, '/cadastroUser');
                     },
                     child: Text(
                         "Clique Aqui",
                         style: TextStyle(
-                            color: kLinkColor, 
+                            color: kLinkColor,
                             fontWeight: FontWeight.w700,
                             decoration: TextDecoration.underline,
                             decorationColor: kLinkColor,

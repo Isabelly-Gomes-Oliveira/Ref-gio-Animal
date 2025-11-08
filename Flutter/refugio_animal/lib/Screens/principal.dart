@@ -247,8 +247,12 @@ class _PetCardState extends State<PetCard> {
 // TELA PRINCIPAL
 // ===================================================================
 class TelaPrincipal extends StatefulWidget {
+  final String cpfUsuario;
 
-  const TelaPrincipal({super.key});
+  const TelaPrincipal({
+    super.key,
+    required this.cpfUsuario,
+  });
   
   @override
   State<TelaPrincipal> createState() => _TelaPrincipalState();
@@ -694,11 +698,15 @@ Widget _buildBottomNavigationBar() {
         ),
         // Ícone Perfil (Redireciona para /Perfil)
         IconButton(
-          onPressed: () {
-            setState(() => _selectedIndex = 2);
-            // USANDO ROTAS NOMEADAS
-            Navigator.pushNamed(context, '/Perfil');
-          },
+        onPressed: () {
+          setState(() => _selectedIndex = 2);
+
+          Navigator.pushNamed(
+            context, 
+            '/perfil',
+            arguments: widget.cpfUsuario,
+          );
+        },
           icon: Icon(
             Icons.person,
             size: 30,

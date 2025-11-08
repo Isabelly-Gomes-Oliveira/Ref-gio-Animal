@@ -1,25 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:refugio_animal/Screens/cadastroUsuario.dart';
 import 'package:refugio_animal/Screens/login.dart';
-import 'package:refugio_animal/Screens/principal.dart'; 
-import 'package:refugio_animal/Screens/cadastropet.dart'; 
-import 'package:refugio_animal/Screens/perfil.dart';       
-
-//void main() {
-//  runApp(const MyApp());
-//}
-
-//class MyApp extends StatelessWidget {
-//  const MyApp({super.key});
-
-//  @override
-//  Widget build(BuildContext context) {
-//    return const MaterialApp(
-//      debugShowCheckedModeBanner: false,
-//      home: CadastroUsuario(),
-//   );
-//  }
-//}
+import 'package:refugio_animal/Screens/principal.dart';
+import 'package:refugio_animal/Screens/cadastropet.dart';
+import 'package:refugio_animal/Screens/perfil.dart';
 
 void main() {
     runApp(const MyApp());
@@ -35,15 +19,55 @@ class MyApp extends StatelessWidget {
             theme: ThemeData(
                 scaffoldBackgroundColor: const Color(0xFFF8E9D2),
             ),
-            debugShowCheckedModeBanner: false, // Adicionando para remover a faixa vermelha
-            initialRoute: '/login', // Tela inicial ainda é o Login
+            debugShowCheckedModeBanner: false, 
+            initialRoute: '/login', 
+            
+            // Rotas que NÃO precisam de argumentos
             routes: {
-                '/login': (context) => const LoginScreen(), // Rota de login
-                '/cadastroUser': (context) => const CadastroUsuario(), // Rota de cadastro
-                '/home': (context) => const TelaPrincipal(), // NOVA ROTA: Tela Principal/Home
-                '/cadastroPet': (context) => const CadastrarPetPage(), // NOVA ROTA: Tela Principal/Home
-                '/Perfil': (context) => const TelaPerfil(), // NOVA ROTA: Tela Principal/Home
+                '/login': (context) => const LoginScreen(),
+                '/cadastroUser': (context) => const CadastroUsuario(),
+                '/cadastroPet': (context) => const CadastrarPetPage(),
+                
             },
+
+            // onGenerateRoute lida com rotas que PRECISAM de argumentos
+            onGenerateRoute: (settings) {
+                
+                final args = settings.arguments;
+
+                switch (settings.name) {
+                    case '/home':
+                        if (args is String) {
+                            return MaterialPageRoute(
+                                builder: (context) => TelaPrincipal(cpfUsuario: args),
+                            );
+                        }
+                        return _errorRoute("CPF não fornecido para a tela Home.");
+
+                    case '/perfil':
+                        if (args is String) {
+                            return MaterialPageRoute(
+                                builder: (context) => TelaPerfil(cpfUsuario: args),
+                            );
+                        }
+                        return _errorRoute("CPF não fornecido para a tela de Perfil.");
+
+                    default:
+                        return _errorRoute("Rota desconhecida: ${settings.name}");
+                }
+            },
+        );
+    }
+
+    // Rota de erro genérica
+    static MaterialPageRoute _errorRoute(String message) {
+        return MaterialPageRoute(
+            builder: (context) => Scaffold(
+                appBar: AppBar(title: const Text('Erro')),
+                body: Center(
+                    child: Text(message),
+                ),
+            ),
         );
     }
 }

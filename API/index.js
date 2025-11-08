@@ -134,6 +134,21 @@ app.get('/pets', async (req,res) => {
     }
 });
 
+// Rota para buscar pets por CPF do doador
+app.get('/pets/cpf/:cpf', validarCPF('cpf'), async (req, res) => {
+    try {
+        const sql = `SELECT * FROM ONG.Pet WHERE CPF_Doador = @cpf`;
+        const resultados = await execQuerySafe(sql, [
+            { name: "cpf", type: mssql.VarChar(11), value: req.params.cpf }
+        ]);
+        // Retorna a lista de pets (pode ser vazia, e isso é um sucesso)
+        return res.status(200).json(resultados);
+    } catch(err) {
+        console.error("Erro ao buscar pets por CPF:", err);
+        return res.status(500).json({ error: "Erro ao buscar pets por CPF." });
+    }
+});
+
 // Rota para buscar pets por raça
 app.get('/pets/raca/:raca', async (req,res) => {
     try {
