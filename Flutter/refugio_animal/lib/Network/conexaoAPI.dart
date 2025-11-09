@@ -235,27 +235,32 @@ static Future<List<Pet>> getPetsByCpf(String cpf) async {
 
 
   // PUT /atualizar/usuario/:cpf
-  static Future<bool> atualizarUsuario(String cpf, {String? email, String? senha, String? telefone}) async { 
-    final body = jsonEncode({
-      'emailAtualizar': email,
-      'senhaAtualizar': senha,
-      'telefoneAtualizar': telefone,
-    }); // monta o corpo da requisição JSON
+  static Future<bool> atualizarUsuario(
+  String cpf, {
+  String? nome,
+  String? email,
+  String? telefone,
+  String? senha,
+}) async {
+  final body = jsonEncode({
+    'nomeAtualizar': nome,
+    'emailAtualizar': email,
+    'telefoneAtualizar': telefone,
+    'senhaAtualizar': senha,
+  });
 
-    final response = await http.put(
-      Uri.parse('$baseUrl/atualizar/usuario/$cpf'),
-      headers: {'Content-Type': 'application/json'},
-      body: body,
-    ); // requisição PUT
+  final response = await http.put(
+    Uri.parse('$baseUrl/atualizar/usuario/$cpf'),
+    headers: {'Content-Type': 'application/json'},
+    body: body,
+  );
 
-    if(response.statusCode == 200){
-      return response.statusCode == 200;
-    }
-    else{
-      throw Exception('Erro ao atualizar dados do usuário!');
-    }
-
+  if (response.statusCode == 200) {
+    return true;
+  } else {
+    throw Exception('Erro ao atualizar dados: ${response.body}');
   }
+}
 
 
 

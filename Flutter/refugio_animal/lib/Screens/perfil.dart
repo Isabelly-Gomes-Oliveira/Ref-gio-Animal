@@ -11,7 +11,7 @@ const Color kBackgroundColor = Color(0xFFF8E9D2); // Cor de fundo do corpo
 const Color kCardColor = Color(0xFF848B94); // Cor de fundo do painel principal (cinza/roxo claro)
 const Color kPrimaryColor = Color(0xFF48526E); // Roxo escuro para textos e botões principais
 const Color kReturnButtonColor = Color(0xFFD91E18); // Vermelho para o botão de retorno
-const Color kPetCardBgColor = Color(0xFFAAB2BC); // Cor de fundo dos mini-cards de pet
+const Color kPetCardBgColor = Color(0xFFD9D9D9); // Cor de fundo dos mini-cards de pet
 const Color kFilterButtonColor = Color(0xFF62739D); // Cor para botões e rodapé
 
 // ===================================================================
@@ -140,7 +140,7 @@ class _TelaPerfilState extends State<TelaPerfil> {
                   Positioned(
                     top: 5,
                     right: 20,
-                    child: _buildAppLogo(), // Usa a logo agora com 'siso.png'
+                    child: _buildAppLogo(), // Logo sem fundo/contorno branco
                   ),
                 ],
               ),
@@ -170,8 +170,8 @@ class _TelaPerfilState extends State<TelaPerfil> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40.0),
               child: Text(
-                _error!, 
-                style: const TextStyle(color: kReturnButtonColor, fontSize: 18), 
+                _error!,
+                style: const TextStyle(color: kReturnButtonColor, fontSize: 18),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -185,7 +185,7 @@ class _TelaPerfilState extends State<TelaPerfil> {
         ),
       );
     }
-    
+
     final user = _usuarioLogado;
 
     if (user == null) {
@@ -205,7 +205,7 @@ class _TelaPerfilState extends State<TelaPerfil> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(height: 105),
-          
+
           _buildUserImage(),
           const SizedBox(height: 20),
 
@@ -220,15 +220,15 @@ class _TelaPerfilState extends State<TelaPerfil> {
           ),
           const SizedBox(height: 5),
           _buildInfoRow(
-            'Telefone:', 
-            _formatarTelefone(user.telefone ?? 'Não Informado'), 
+            'Telefone:',
+            _formatarTelefone(user.telefone ?? 'Não Informado'),
           ),
           _buildInfoRow(
-            'Email:', 
-            user.email ?? 'Não Informado', 
+            'Email:',
+            user.email ?? 'Não Informado',
           ),
           _buildInfoRow(
-            'CPF:', 
+            'CPF:',
             _formatarCPF(user.cpf ?? widget.cpfUsuario)
           ),
           const SizedBox(height: 30),
@@ -237,19 +237,28 @@ class _TelaPerfilState extends State<TelaPerfil> {
           const SizedBox(height: 40),
 
           _buildActionButton(
-            'Alterar Dados do Usuário',
-            () {
-              debugPrint('Navegar para Alterar Dados (CPF: ${user.cpf ?? widget.cpfUsuario})');
-            },
-            kPrimaryColor,
-          ),
+              'Alterar Dados do Usuário',
+              () async {
+                final result = await Navigator.pushNamed(
+                  context,
+                  '/alterarDadosUsuario', 
+                  arguments: user.cpf ?? widget.cpfUsuario,
+                );
+
+                // Se algo mudou, recarrega os dados
+                if (result == true) {
+                  _fetchUserData();
+                }
+              },
+              kPrimaryColor,
+            ),
           const SizedBox(height: 15),
           _buildActionButton(
             'Desconectar',
             () => _showLogoutConfirmation(context),
             kReturnButtonColor,
           ),
-          
+
           const SizedBox(height: 30),
         ],
       ),
@@ -257,7 +266,7 @@ class _TelaPerfilState extends State<TelaPerfil> {
   }
 
   // ===================================================================
-  // WIDGETS AUXILIARES E FORMATAÇÃO (com ajuste na logo)
+  // WIDGETS AUXILIARES E FORMATAÇÃO
   // ===================================================================
 
   String _formatarCPF(String cpf) {
@@ -352,14 +361,18 @@ class _TelaPerfilState extends State<TelaPerfil> {
                   child: Text(
                     'Você ainda não cadastrou nenhum pet.',
                     style: TextStyle(color: kPrimaryColor.withOpacity(0.8)),
+                    textAlign: TextAlign.center,
                   ),
                 )
-              : ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _meusPets.length,
-                  itemBuilder: (context, index) {
-                    return _buildPetMiniCard(_meusPets[index]);
-                  },
+              : Center(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _meusPets.length,
+                    itemBuilder: (context, index) {
+                      return _buildPetMiniCard(_meusPets[index]);
+                    },
+                  ),
                 ),
         ),
       ],
@@ -428,12 +441,15 @@ class _TelaPerfilState extends State<TelaPerfil> {
               ),
               // Ícone de Engrenagem (Canto Superior Esquerdo)
               Positioned(
-                top: -8,
-                left: -8,
+                top: 0,
+                left: 55,
                 child: GestureDetector(
                   onTap: () {
-                    // TODO: Implementar navegação para a edição do pet
-                    debugPrint('Editar Pet: ${pet.nome} (ID: ${pet.id})');
+                    Navigator.pushNamed(
+                      context,
+                      '/alterarPet',
+                      arguments: pet, 
+                    );
                   },
                   child: Container(
                     padding: const EdgeInsets.all(3),
@@ -443,7 +459,7 @@ class _TelaPerfilState extends State<TelaPerfil> {
                     ),
                     child: const Icon(
                       Icons.settings,
-                      size: 15,
+                      size: 20,
                       color: Colors.white,
                     ),
                   ),
@@ -503,20 +519,15 @@ class _TelaPerfilState extends State<TelaPerfil> {
   }
 
   Widget _buildAppLogo() {
-    // ALTERAÇÃO: Usando Image.asset com 'siso.png'
     return Container(
       width: 70,
       height: 70,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: kPrimaryColor.withOpacity(0.5)),
-      ),
+      // Removendo o BoxDecoration para tirar o fundo branco
       child: Center(
         child: Image.asset(
-          'assets/imagens/logo.png', // Caminho atualizado para siso.png
-          width: 50, // Ajuste o tamanho conforme necessário
-          height: 50, // Ajuste o tamanho conforme necessário
+          'assets/imagens/logo.png',
+          width: 70, // Tamanho ajustado
+          height: 70, // Tamanho ajustado
           fit: BoxFit.contain,
         ),
       ),
@@ -528,7 +539,7 @@ class _TelaPerfilState extends State<TelaPerfil> {
       color: kCardColor, // Cor de fundo do rodapé conforme o tema visual
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: SafeArea(
-        top: false, 
+        top: false,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -549,8 +560,8 @@ class _TelaPerfilState extends State<TelaPerfil> {
               onPressed: () {
                 setState(() => _selectedIndex = 1);
                 Navigator.pushNamedAndRemoveUntil(
-                  context, 
-                  '/home', 
+                  context,
+                  '/home',
                   (route) => false,
                   arguments: widget.cpfUsuario,
                 );

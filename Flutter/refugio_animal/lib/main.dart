@@ -4,6 +4,9 @@ import 'package:refugio_animal/Screens/login.dart';
 import 'package:refugio_animal/Screens/principal.dart';
 import 'package:refugio_animal/Screens/cadastropet.dart';
 import 'package:refugio_animal/Screens/perfil.dart';
+import 'package:refugio_animal/Screens/alterarDadosPet.dart'; 
+import 'package:refugio_animal/Network/pet.dart'; 
+import 'package:refugio_animal/Screens/alterarDadosUsuario.dart';
 
 void main() {
     runApp(const MyApp());
@@ -51,6 +54,24 @@ class MyApp extends StatelessWidget {
                             );
                         }
                         return _errorRoute("CPF não fornecido para a tela de Perfil.");
+
+                    case '/alterarDadosUsuario':
+                        if (args is String) { // Espera receber o CPF como String
+                            return MaterialPageRoute(
+                                builder: (context) => AlterarDadosUsuarioScreen(cpfUsuario: args),
+                            );
+                        }
+                        return _errorRoute("CPF não fornecido para a alteração de dados do usuário.");
+                    // =======================================================
+
+                    case '/alterarPet': 
+                        if (args is Pet) {
+                            return MaterialPageRoute(
+                                builder: (context) => AlterarDadosPet(petToEdit: args),
+                            );
+                        }
+                        return _errorRoute("Objeto Pet não fornecido para a alteração.");
+
 
                     default:
                         return _errorRoute("Rota desconhecida: ${settings.name}");

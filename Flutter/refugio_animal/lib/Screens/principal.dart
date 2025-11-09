@@ -641,7 +641,7 @@ Widget _buildFilterButton({
       child: DropdownButton<String>(
         dropdownColor: kFilterButtonColor,
         value: selected.isEmpty ? null : selected,
-        hint: Text(label, style: const TextStyle(color: Colors.white70)),
+        hint: Text(label, style: const TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
         icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
         isExpanded: true,
         items: options
