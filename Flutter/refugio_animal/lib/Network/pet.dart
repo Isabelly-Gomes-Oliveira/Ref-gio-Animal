@@ -1,13 +1,14 @@
 class Pet {
   final int id;
-  final String? nome;
-  final String? raca;
+  final String nome;
+  final String raca;
   final int? idade;
   final String descricao;
   final String? deficiencia;
   final String especie;
-  final int statusAdotado;
+  final String statusAdotado;
   final String imagem;
+  final String cpfDoador; 
 
   Pet({
     required this.id,
@@ -19,29 +20,32 @@ class Pet {
     required this.especie,
     required this.statusAdotado,
     required this.imagem,
+    required this.cpfDoador,
   });
 
-  Map<String, dynamic> toJson() => {  // converte para JSON
-    'id': id,
-    'nome': nome,
-    'raca': raca,
-    'idade': idade,
-    'descricao': descricao,
-    'deficiencia': deficiencia,
-    'especie': especie,
-    'status_adotado': statusAdotado,
-    'imagem': imagem,
-  };
+  factory Pet.fromJson(Map<String, dynamic> json) => Pet(
+        id: json['id'] ?? 0,
+        nome: json['nome'] ?? 'Sem nome',
+        raca: json['raca'] ?? 'Raça N/A',
+        idade: json['idade'] as int?,
+        descricao: json['descricao'] ?? 'Sem descrição',
+        deficiencia: json['deficiencia'] as String?,
+        especie: json['especie'] ?? 'Espécie N/A',
+        statusAdotado: json['status_adotado'] ?? 'desconhecido',
+        imagem: json['imagem'] ?? '',
+        cpfDoador: json['CPF_Doador'] ?? '', // pega o CPF do dono
+      );
 
-  factory Pet.fromJson(Map<String, dynamic> json) => Pet( // construtor
-    id: json['id'] as int,
-    nome: json['nome'] as String,
-    raca: json['raca'] as String,
-    idade: json['idade'] as int?,
-    descricao: json['descricao'] as String,
-    deficiencia: json['deficiencia'] as String?,
-    especie: json['especie'] as String,
-    statusAdotado: json['statusAdotado'] as int,
-    imagem: json['imagem'] as String,
-  );
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'nome': nome,
+        'raca': raca,
+        'idade': idade,
+        'descricao': descricao,
+        'deficiencia': deficiencia,
+        'especie': especie,
+        'status_adotado': statusAdotado,
+        'imagem': imagem,
+        'CPF_Doador': cpfDoador,
+      };
 }

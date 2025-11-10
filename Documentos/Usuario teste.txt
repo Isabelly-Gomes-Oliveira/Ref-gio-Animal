@@ -1,0 +1,6 @@
+{
+  "usuario": "81767286678",
+  "senha": "MinhaSenhaForte1!"
+}
+
+outros usuarios senha: SenhaForte@123

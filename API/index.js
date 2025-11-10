@@ -78,13 +78,14 @@ function isCPFValido(cpf) {
 
 function validarCPF(campoCPF) {
     return (req, res, next) => {
-        const cpf = req.body[campoCPF] || req.params[campoCPF];
+        const cpf = (req.body && req.body[campoCPF]) || req.params[campoCPF];
         if (!cpf || !isCPFValido(cpf)) {
             return res.status(400).json({ error: "CPF inválido." });
         }
         next();
     };
 }
+
 
 
 // ##################################################################
@@ -130,6 +131,21 @@ app.get('/pets', async (req,res) => {
     } catch(err) {
         console.error(err);
         return res.status(500).json({ error: "Erro ao buscar pets." });
+    }
+});
+
+// Rota para buscar pets por CPF do doador
+app.get('/pets/cpf/:cpf', validarCPF('cpf'), async (req, res) => {
+    try {
+        const sql = `SELECT * FROM ONG.Pet WHERE CPF_Doador = @cpf`;
+        const resultados = await execQuerySafe(sql, [
+            { name: "cpf", type: mssql.VarChar(11), value: req.params.cpf }
+        ]);
+        // Retorna a lista de pets (pode ser vazia, e isso é um sucesso)
+        return res.status(200).json(resultados);
+    } catch(err) {
+        console.error("Erro ao buscar pets por CPF:", err);
+        return res.status(500).json({ error: "Erro ao buscar pets por CPF." });
     }
 });
 
@@ -275,34 +291,60 @@ app.post('/pets', validarCamposObrigatorios(['cpfDoador','descricaoPet','imgPet'
 // ##################################################################
 
 // Rota para atualizar usuário
-app.put("/usuarios/:cpf", validarSenha, validarCPF('cpf'), async (req,res) => {
-        try {
-            const cpfUsuario = req.params.cpf;
-            const { emailAtualizar, senhaAtualizar, telefoneAtualizar } = req.body;
-            let hashSenha = senhaAtualizar ? await bcrypt.hash(senhaAtualizar, saltRounds) : null;
+app.put('/atualizar/usuario/:cpf', validarCPF('cpf'), async (req, res) => {
+  const { nomeAtualizar, emailAtualizar, telefoneAtualizar, senhaAtualizar } = req.body;
 
-            const sql = `
-                UPDATE ONG.Usuario
-                SET email = ISNULL(@email, email),
-                    senha = ISNULL(@senha, senha),
-                    telefone = ISNULL(@telefone, telefone)
-                WHERE CPF = @cpf
-            `;
-
-            await execQuerySafe(sql, [
-                { name: "email", type: mssql.VarChar(100), value: emailAtualizar || null },
-                { name: "senha", type: mssql.VarChar(100), value: hashSenha },
-                { name: "telefone", type: mssql.VarChar(15), value: telefoneAtualizar || null },
-                { name: "cpf", type: mssql.VarChar(11), value: cpfUsuario }
-            ]);
-
-            return res.status(200).json({ message: "Dados atualizados com sucesso!" });
-        } catch(err) {
-            console.error(err);
-            return res.status(500).json({ error: "Erro ao atualizar usuário" });
-        }
+  try {
+    // Verifica se o usuário existe
+    const verificarSQL = `
+      SELECT CPF FROM ONG.Usuario WHERE CPF = @cpf
+    `;
+    const existe = await execQuerySafe(verificarSQL, [
+      { name: "cpf", type: mssql.VarChar(11), value: req.params.cpf }
+    ]);
+    if (existe.length === 0) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
     }
-);
+
+    // Monta atualização dinâmica
+    const campos = [];
+    const params = [{ name: "cpf", type: mssql.VarChar(11), value: req.params.cpf }];
+
+    if (nomeAtualizar) {
+      campos.push("nome = @nome");
+      params.push({ name: "nome", type: mssql.VarChar(100), value: nomeAtualizar });
+    }
+    if (emailAtualizar) {
+      campos.push("email = @email");
+      params.push({ name: "email", type: mssql.VarChar(100), value: emailAtualizar });
+    }
+    if (telefoneAtualizar) {
+      campos.push("telefone = @telefone");
+      params.push({ name: "telefone", type: mssql.VarChar(20), value: telefoneAtualizar });
+    }
+    if (senhaAtualizar) {
+      const hash = await bcrypt.hash(senhaAtualizar, saltRounds);
+      campos.push("senha = @senha");
+      params.push({ name: "senha", type: mssql.VarChar(255), value: hash });
+    }
+
+    if (campos.length === 0) {
+      return res.status(400).json({ error: "Nenhum campo para atualizar." });
+    }
+
+    const sql = `
+      UPDATE ONG.Usuario
+      SET ${campos.join(', ')}
+      WHERE CPF = @cpf
+    `;
+    await execQuerySafe(sql, params);
+
+    return res.status(200).json({ message: "Usuário atualizado com sucesso." });
+  } catch (err) {
+    console.error("Erro ao atualizar usuário:", err);
+    return res.status(500).json({ error: "Erro ao atualizar usuário." });
+  }
+});
 
 // Rota para atualizar pets
 app.put("/pets/:id", async(req,res) =>{
