@@ -668,12 +668,16 @@ Widget _buildBottomNavigationBar() {
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        // Ícone Adicionar (Redireciona para /cadastroPet)
+        // Ícone Adicionar (Redireciona para /cadastroPet enviando CPF)
         IconButton(
           onPressed: () {
             setState(() => _selectedIndex = 0);
-            // USANDO ROTAS NOMEADAS
-            Navigator.pushNamed(context, '/cadastroPet');
+            // USANDO ROTAS NOMEADAS e enviando CPF do usuário logado
+            Navigator.pushNamed(
+              context, 
+              '/cadastroPet', 
+              arguments: widget.cpfUsuario,
+            );
           },
           icon: Icon(
             Icons.add_circle_outline,
@@ -686,7 +690,6 @@ Widget _buildBottomNavigationBar() {
           onPressed: () {
             setState(() {
               _selectedIndex = 1;
-              // A rota '/home' já é esta tela, então apenas recarregamos os dados
               _loadPets(); 
             });
           },
@@ -698,15 +701,14 @@ Widget _buildBottomNavigationBar() {
         ),
         // Ícone Perfil (Redireciona para /Perfil)
         IconButton(
-        onPressed: () {
-          setState(() => _selectedIndex = 2);
-
-          Navigator.pushNamed(
-            context, 
-            '/perfil',
-            arguments: widget.cpfUsuario,
-          );
-        },
+          onPressed: () {
+            setState(() => _selectedIndex = 2);
+            Navigator.pushNamed(
+              context, 
+              '/perfil',
+              arguments: widget.cpfUsuario,
+            );
+          },
           icon: Icon(
             Icons.person,
             size: 30,

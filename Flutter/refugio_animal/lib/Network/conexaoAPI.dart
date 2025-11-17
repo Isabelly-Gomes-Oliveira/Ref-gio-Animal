@@ -124,16 +124,17 @@ static Future<List<Pet>> getPetsByCpf(String cpf) async {
 
   // POST /cadastro/usuario
   static Future<bool> cadastrarUsuario(Usuario user, String senha) async {
-    final body = jsonEncode({                        
-      'cpf': user.cpf,
-      'nome': user.nome,
-      'email': user.email,
-      'senha': senha,
-      'telefone': user.telefone,
-    }); // monta o corpo da requisição em JSON
+    final body = jsonEncode({
+      'cpfUser': user.cpf,
+      'nomeUser': user.nome,
+      'emailUser': user.email,
+      'senhaUser': senha,
+      'telefoneUser': user.telefone,
+    });
+ // monta o corpo da requisição em JSON
 
     final response = await http.post(
-      Uri.parse('$baseUrl/cadastro/usuario'),              
+      Uri.parse('$baseUrl/usuarios'),              
       headers: {'Content-Type': 'application/json'},      
       body: body,                                        
     );  // requisição POST
@@ -151,37 +152,31 @@ static Future<List<Pet>> getPetsByCpf(String cpf) async {
 
 
     // POST /cadastro/pets
-  static Future<bool> cadastrarPet(cpfDoador, nomePet, racaPet, idadePet, descricaoPet, deficienciaPet, imgPet, especiePet, statusPet) async {
-    final body = jsonEncode({                        
+static Future<bool> cadastrarPet(cpfDoador, nomePet, racaPet, idadePet, descricaoPet, deficienciaPet, imgPet, especiePet) async {
+    final body = jsonEncode({
       'cpfDoador': cpfDoador,
-      'nome': nomePet,
-      'raca': racaPet,
-      'idade': idadePet,
-      'descricao': descricaoPet,
-      'deficiencia': deficienciaPet,
-      'imagem': imgPet,
-      'especie': especiePet,
-      'status': statusPet
-    }); // monta o corpo da requisição em JSON
+      'nomePet': nomePet,
+      'racaPet': racaPet, // Passa null se null (melhor para o Node.js)
+      'idadePet': idadePet,
+      'descricaoPet': descricaoPet,
+      'deficienciaPet': deficienciaPet, // Passa null se null (melhor para o Node.js)
+      'imgPet': imgPet,
+      'especiePet': especiePet,
+      'statusPet': 'disponível'
+    });
 
     final response = await http.post(
-      Uri.parse('$baseUrl/cadastro/pets'),              
-      headers: {'Content-Type': 'application/json'},      
-      body: body,                                        
-    );  // requisição POST
+      Uri.parse('$baseUrl/pets'),
+      headers: {'Content-Type': 'application/json'},
+      body: body,
+    );
 
-    if(response.statusCode == 201){
+    if (response.statusCode == 201) {
       return response.statusCode == 201;
+    } else {
+      throw Exception('Erro ao realizar cadastro! Status: ${response.statusCode}. Body: ${response.body}');
     }
-    else{
-      throw Exception('Erro ao realizar cadastro!');
-    }
-
-               
   }
-
-
-
 
   // POST /login
   static Future<bool> loginUsuario(String cpf, String senha) async { 
@@ -218,18 +213,19 @@ static Future<List<Pet>> getPetsByCpf(String cpf) async {
 
 
   // DELETE /deletar/pets/:id
-  Future<bool> marcarComoAdotado(int idPet) async {
-    final url = Uri.parse("$baseUrl/deletar/pets/$idPet");
-      
+  static Future<bool> marcarComoAdotado(int idPet) async { 
+    final url = Uri.parse("$baseUrl/pets/$idPet");
+        
     final response = await http.delete(url);  // requisição DELETE
 
-    if(response.statusCode == 201){
-      return response.statusCode == 201;
+    // Mantenha a lógica de status code 201 ou use 200/204, dependendo do seu backend
+    if(response.statusCode == 200){ 
+        return true; 
     }
     else{
-      throw Exception('Erro ao deletar pet!');
+        throw Exception('Erro ao deletar pet! Status: ${response.statusCode}');
     }
-  }
+}
 
 
 

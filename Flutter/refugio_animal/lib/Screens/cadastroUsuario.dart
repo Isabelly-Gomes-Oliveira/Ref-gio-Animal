@@ -21,6 +21,9 @@ class _CadastroUsuarioState extends State<CadastroUsuario> {
   final _formKey = GlobalKey<FormState>();
   bool loading = false;
 
+  // 👉 Controle do olho do campo de senha
+  bool _mostrarSenha = false;
+
   // Para exibir mensagens:
   void mostrarMensagem(String msg, {bool erro = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -151,17 +154,48 @@ class _CadastroUsuarioState extends State<CadastroUsuario> {
 
                       const SizedBox(height: 15),
 
-                      campo("Digite sua senha*", senhaController,
-                          obscure: true,
-                          validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Informe sua senha";
-                        }
-                        if (value.length < 4) {
-                          return "A senha deve ter pelo menos 4 caracteres";
-                        }
-                        return null;
-                      }),
+                      // ====================================================
+                      // ⚠️ CAMPO DE SENHA COM OLHINHO (VISUALIZAR SENHA)
+                      // ====================================================
+                      TextFormField(
+                        controller: senhaController,
+                        obscureText: !_mostrarSenha,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return "Informe sua senha";
+                          }
+                          if (value.length < 4) {
+                            return "A senha deve ter pelo menos 4 caracteres";
+                          }
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Digite sua senha*",
+                          filled: true,
+                          fillColor: const Color(0xFFD9D9D9),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+
+                          // 👉 Ícone do olho
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _mostrarSenha
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: Colors.black54,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _mostrarSenha = !_mostrarSenha;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
 
                       const SizedBox(height: 25),
 

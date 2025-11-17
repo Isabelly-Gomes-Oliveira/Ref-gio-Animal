@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:refugio_animal/Network/conexaoAPI.dart';
 import 'package:refugio_animal/Network/pet.dart';
 import 'package:refugio_animal/Network/usuario.dart';
-// import 'package:refugio_animal/Screens/cadastropet.dart'; // Removido por não ser usado
-// import 'package:refugio_animal/Screens/perfil.dart'; // Removido (auto-importação)
-// import 'dart:io'; // Removido por não ser usado
 
 // --- Cores Personalizadas ---
 const Color kBackgroundColor = Color(0xFFF8E9D2); // Cor de fundo do corpo
@@ -13,6 +10,7 @@ const Color kPrimaryColor = Color(0xFF48526E); // Roxo escuro para textos e bot�
 const Color kReturnButtonColor = Color(0xFFD91E18); // Vermelho para o botão de retorno
 const Color kPetCardBgColor = Color(0xFFD9D9D9); // Cor de fundo dos mini-cards de pet
 const Color kFilterButtonColor = Color(0xFF62739D); // Cor para botões e rodapé
+const Color kDeleteColor = Color(0xFFD91E18); // Vermelho para exclusão
 
 // ===================================================================
 // TELA PERFIL
@@ -76,6 +74,86 @@ class _TelaPerfilState extends State<TelaPerfil> {
     }
   }
 
+  // 🎯 NOVA FUNÇÃO: Trata a exclusão/adoção do pet
+  Future<void> _handleDeletePet(int idPet, String petName) async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // O método agora deve ser chamado na classe ApiService (static)
+      final sucesso = await ApiService.marcarComoAdotado(idPet);
+
+      if (!mounted) return;
+
+      if (sucesso) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$petName marcado como adotado com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Recarrega os dados para remover o pet da lista
+        await _fetchUserData();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Falha ao marcar $petName como adotado.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao processar: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  // 🎯 NOVA FUNÇÃO: Mostra o diálogo de confirmação de adoção
+  void _showAdoptionConfirmation(Pet pet) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          backgroundColor: Colors.white,
+          title: const Text('Confirmar Adoção',
+              style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold)),
+          content: Text(
+              'Tem certeza de que deseja marcar o pet "${pet.nome}" como **ADOTADO**? Ele será removido da lista de pets disponíveis.',
+              style: const TextStyle(color: kPrimaryColor)),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(), // Fechar
+              child: const Text('Cancelar', style: TextStyle(color: kPrimaryColor)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Fechar o diálogo
+                // Chama a função para lidar com a exclusão
+                _handleDeletePet(pet.id, pet.nome);
+              },
+              child: const Text('Confirmar Adoção',
+                  style: TextStyle(color: kDeleteColor, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showLogoutConfirmation(BuildContext context) {
     showDialog(
       context: context,
@@ -83,8 +161,10 @@ class _TelaPerfilState extends State<TelaPerfil> {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           backgroundColor: Colors.white,
-          title: const Text('Desconectar', style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold)),
-          content: const Text('Tem certeza de que deseja sair da sua conta?', style: TextStyle(color: kPrimaryColor)),
+          title: const Text('Desconectar',
+              style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold)),
+          content: const Text('Tem certeza de que deseja sair da sua conta?',
+              style: TextStyle(color: kPrimaryColor)),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(), // Fechar
@@ -93,9 +173,12 @@ class _TelaPerfilState extends State<TelaPerfil> {
             TextButton(
               onPressed: () {
                 // Navega para o login e remove todas as telas anteriores
-                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                Navigator.pushNamedAndRemoveUntil(
+                    context, '/login', (route) => false);
               },
-              child: const Text('Sair', style: TextStyle(color: kReturnButtonColor, fontWeight: FontWeight.bold)),
+              child: const Text('Sair',
+                  style: TextStyle(
+                      color: kReturnButtonColor, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -155,7 +238,6 @@ class _TelaPerfilState extends State<TelaPerfil> {
   // FIM DO BUILD METHOD
   // ===================================================================
 
-
   // --- Lógica de exibição de conteúdo ---
   Widget _buildContent() {
     if (_isLoading) {
@@ -179,7 +261,8 @@ class _TelaPerfilState extends State<TelaPerfil> {
             ElevatedButton(
               onPressed: _fetchUserData,
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-              child: const Text('Tentar Novamente', style: TextStyle(color: Colors.white)),
+              child: const Text('Tentar Novamente',
+                  style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -229,7 +312,7 @@ class _TelaPerfilState extends State<TelaPerfil> {
           ),
           _buildInfoRow(
             'CPF:',
-            _formatarCPF(user.cpf ?? widget.cpfUsuario)
+            _formatarCPF(user.cpf ?? widget.cpfUsuario),
           ),
           const SizedBox(height: 30),
 
@@ -237,21 +320,21 @@ class _TelaPerfilState extends State<TelaPerfil> {
           const SizedBox(height: 40),
 
           _buildActionButton(
-              'Alterar Dados do Usuário',
-              () async {
-                final result = await Navigator.pushNamed(
-                  context,
-                  '/alterarDadosUsuario', 
-                  arguments: user.cpf ?? widget.cpfUsuario,
-                );
+            'Alterar Dados do Usuário',
+            () async {
+              final result = await Navigator.pushNamed(
+                context,
+                '/alterarDadosUsuario',
+                arguments: user.cpf ?? widget.cpfUsuario,
+              );
 
-                // Se algo mudou, recarrega os dados
-                if (result == true) {
-                  _fetchUserData();
-                }
-              },
-              kPrimaryColor,
-            ),
+              // Se algo mudou, recarrega os dados
+              if (result == true) {
+                _fetchUserData();
+              }
+            },
+            kPrimaryColor,
+          ),
           const SizedBox(height: 15),
           _buildActionButton(
             'Desconectar',
@@ -394,7 +477,8 @@ class _TelaPerfilState extends State<TelaPerfil> {
                 decoration: BoxDecoration(
                   color: kPetCardBgColor, // Cor de fundo do mini-card
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: kPrimaryColor.withOpacity(0.5)),
+                  border:
+                      Border.all(color: kPrimaryColor.withOpacity(0.5)),
                   boxShadow: [
                     BoxShadow(
                       color: kPrimaryColor.withOpacity(0.2),
@@ -439,17 +523,21 @@ class _TelaPerfilState extends State<TelaPerfil> {
                         ),
                       ),
               ),
-              // Ícone de Engrenagem (Canto Superior Esquerdo)
+              // Ícone de Engrenagem (Canto Superior Direito)
               Positioned(
                 top: 0,
-                left: 55,
+                right: -5,
                 child: GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(
+                  onTap: () async {
+                    final result = await Navigator.pushNamed(
                       context,
                       '/alterarPet',
-                      arguments: pet, 
+                      arguments: pet,
                     );
+                    // Recarrega os dados se a alteração for bem-sucedida
+                    if (result == true) {
+                      _fetchUserData();
+                    }
                   },
                   child: Container(
                     padding: const EdgeInsets.all(3),
@@ -459,7 +547,27 @@ class _TelaPerfilState extends State<TelaPerfil> {
                     ),
                     child: const Icon(
                       Icons.settings,
-                      size: 20,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              // 🎯 NOVO ÍCONE: Lixeira (Excluir/Adotar) (Canto Superior Esquerdo)
+              Positioned(
+                top: 0,
+                left: -5,
+                child: GestureDetector(
+                  onTap: () => _showAdoptionConfirmation(pet),
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      color: kDeleteColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.delete_forever,
+                      size: 18,
                       color: Colors.white,
                     ),
                   ),
@@ -491,7 +599,8 @@ class _TelaPerfilState extends State<TelaPerfil> {
       ),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w600),
+        style: const TextStyle(
+            fontSize: 18, color: Colors.white, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -510,7 +619,8 @@ class _TelaPerfilState extends State<TelaPerfil> {
         ],
       ),
       child: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 24),
+        icon:
+            const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 24),
         onPressed: () => Navigator.pop(context), // Retorna à tela anterior
         padding: const EdgeInsets.all(10),
         tooltip: 'Voltar',
@@ -522,7 +632,6 @@ class _TelaPerfilState extends State<TelaPerfil> {
     return Container(
       width: 70,
       height: 70,
-      // Removendo o BoxDecoration para tirar o fundo branco
       child: Center(
         child: Image.asset(
           'assets/imagens/logo.png',
@@ -547,12 +656,17 @@ class _TelaPerfilState extends State<TelaPerfil> {
             IconButton(
               onPressed: () {
                 setState(() => _selectedIndex = 0);
-                Navigator.pushNamed(context, '/cadastroPet');
+                // USANDO ROTAS NOMEADAS e enviando CPF do usuário logado
+                Navigator.pushNamed(
+                  context,
+                  '/cadastroPet',
+                  arguments: widget.cpfUsuario,
+                );
               },
               icon: Icon(
                 Icons.add_circle_outline,
                 size: 30,
-                color: _selectedIndex == 0 ? kPrimaryColor : Colors.black54,
+                color: _selectedIndex == 0 ? Colors.black : Colors.black54,
               ),
             ),
             // Ícone Home

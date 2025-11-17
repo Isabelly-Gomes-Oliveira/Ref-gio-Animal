@@ -48,12 +48,13 @@ class _AlterarDadosPetState extends State<AlterarDadosPet> {
 
   void _carregarDadosPet() {
     final pet = widget.petToEdit;
-    _nomeController.text = pet.nome;
-    _racaController.text = pet.raca;
+    // Garante que se o campo for null, a controller inicie com string vazia
+    _nomeController.text = pet.nome ?? ''; 
+    _racaController.text = pet.raca ?? '';
     _idadeController.text = pet.idade?.toString() ?? '';
-    _descricaoController.text = pet.descricao;
+    _descricaoController.text = pet.descricao ?? '';
     _deficienciaController.text = pet.deficiencia ?? '';
-    _imagemController.text = pet.imagem;
+    _imagemController.text = pet.imagem ?? '';
   }
 
   Future<void> _mostrarConfirmacao() async {
@@ -114,19 +115,20 @@ class _AlterarDadosPetState extends State<AlterarDadosPet> {
 
     setState(() => _isLoading = true);
 
+    // Mapeamento e validação de strings vazias para null para API
+    String? getStringOrNull(String text) => text.trim().isEmpty ? null : text.trim();
+
     try {
       final sucesso = await ApiService.atualizarPet(
         widget.petToEdit.id,
-        nome: _nomeController.text.trim(),
-        raca: _racaController.text.trim(),
+        nome: getStringOrNull(_nomeController.text),
+        raca: getStringOrNull(_racaController.text),
         idade: _idadeController.text.isEmpty
             ? null
             : int.tryParse(_idadeController.text.trim()),
-        descricao: _descricaoController.text.trim(),
-        deficiencia: _deficienciaController.text.trim().isEmpty
-            ? null
-            : _deficienciaController.text.trim(),
-        imagem: _imagemController.text.trim(),
+        descricao: getStringOrNull(_descricaoController.text), // ATENÇÃO: Se for obrigatório, remova o getStringOrNull
+        deficiencia: getStringOrNull(_deficienciaController.text),
+        imagem: getStringOrNull(_imagemController.text),
       );
 
       if (!mounted) return;
@@ -165,6 +167,8 @@ class _AlterarDadosPetState extends State<AlterarDadosPet> {
     TextInputType keyboardType = TextInputType.text,
     String? hint,
     String? Function(String?)? customValidator,
+    // 🚨 NOVO: Flag para marcar campo como opcional.
+    bool isOptional = false, 
   }) {
     return TextFormField(
       controller: controller,
@@ -172,7 +176,7 @@ class _AlterarDadosPetState extends State<AlterarDadosPet> {
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
-        hintText: hint,
+        hintText: isOptional ? "Opcional" : hint, // Ajusta o hint se for opcional
         filled: true,
         fillColor: kInputFillColor,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -183,7 +187,8 @@ class _AlterarDadosPetState extends State<AlterarDadosPet> {
           if (validationResult != null) return validationResult;
         }
 
-        if (enabled && (value == null || value.isEmpty)) {
+        // 🚨 CORREÇÃO: Verifica se o campo é obrigatório (e não está desabilitado) antes de validar.
+        if (enabled && !isOptional && (value == null || value.isEmpty)) {
           return "Campo obrigatório";
         }
         return null;
@@ -231,7 +236,8 @@ class _AlterarDadosPetState extends State<AlterarDadosPet> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final formWidth = screenWidth * 0.5;
+    // O valor 0.5 (50%) pode ser muito pequeno em telas grandes. Ajustei para um máximo razoável.
+    final formWidth = screenWidth > 600 ? 500.0 : screenWidth * 0.9; 
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
@@ -288,30 +294,34 @@ class _AlterarDadosPetState extends State<AlterarDadosPet> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
                                     children: [
+                                      // 🚨 ATENÇÃO: NOME e RAÇA são opcionais no Flutter mas seu backend pode exigir.
                                       _buildCampo("Nome", _nomeController,
                                           keyboardType: TextInputType.name),
                                       const SizedBox(height: 15),
-                                      _buildCampo("Raça", _racaController),
+                                      _buildCampo("Raça", _racaController, isOptional: true), // Tornando opcional no validador
                                       const SizedBox(height: 15),
                                       _buildCampo("Idade", _idadeController,
+                                          isOptional: true, // Tornando opcional no validador
                                           keyboardType: TextInputType.number,
                                           customValidator: (value) {
-                                        if (value != null &&
-                                            value.isNotEmpty &&
-                                            int.tryParse(value) == null) {
-                                          return "Digite um número válido";
-                                        }
-                                        return null;
-                                      }),
+                                            if (value != null &&
+                                                value.isNotEmpty &&
+                                                int.tryParse(value) == null) {
+                                              return "Digite um número válido";
+                                            }
+                                            return null;
+                                          }),
                                       const SizedBox(height: 15),
-                                      _buildCampo("Descrição", _descricaoController),
+                                      _buildCampo("Descrição", _descricaoController), // Mantido como obrigatório (padrão)
                                       const SizedBox(height: 15),
+                                      // 🎯 CAMPO DE DEFICIÊNCIA AGORA É OPCIONAL
                                       _buildCampo("Deficiência", _deficienciaController,
-                                          hint: "Opcional"),
+                                          isOptional: true), 
                                       const SizedBox(height: 15),
+                                      // 🎯 CAMPO DE IMAGEM AGORA É OPCIONAL
                                       _buildCampo("URL da Imagem", _imagemController,
                                           keyboardType: TextInputType.url,
-                                          hint: "Opcional"),
+                                          isOptional: true), 
                                       const SizedBox(height: 25),
                                       SizedBox(
                                         height: 48,
