@@ -21,7 +21,7 @@ class _CadastroUsuarioState extends State<CadastroUsuario> {
   final _formKey = GlobalKey<FormState>();
   bool loading = false;
 
-  // Função para exibir mensagens:
+  // Para exibir mensagens:
   void mostrarMensagem(String msg, {bool erro = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
