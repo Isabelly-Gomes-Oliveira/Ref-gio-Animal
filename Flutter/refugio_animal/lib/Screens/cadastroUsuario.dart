@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-// Importação para usar TextInputFormatter
-import 'package:flutter/services.dart'; 
-// Importação da sua classe de serviço API
-import 'package:refugio_animal/Network/conexaoAPI.dart'; 
+import 'package:flutter/services.dart';
+import '../Network/conexaoAPI.dart';
+import '../Network/usuario.dart';
 
 class CadastroUsuario extends StatefulWidget {
   const CadastroUsuario({super.key});
@@ -12,31 +11,76 @@ class CadastroUsuario extends StatefulWidget {
 }
 
 class _CadastroUsuarioState extends State<CadastroUsuario> {
+  // Controllers dos campos:
+  final TextEditingController cpfController = TextEditingController();
+  final TextEditingController nomeController = TextEditingController();
+  final TextEditingController telefoneController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController senhaController = TextEditingController();
+
+  final _formKey = GlobalKey<FormState>();
+  bool loading = false;
+
+  // Função para exibir mensagens:
+  void mostrarMensagem(String msg, {bool erro = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: erro ? Colors.red : Colors.green,
+      ),
+    );
+  }
+
+  // Função de cadastro real:
+  Future<void> cadastrar() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => loading = true);
+
+    try {
+      final novoUsuario = Usuario(
+        cpf: cpfController.text.trim(),
+        nome: nomeController.text.trim(),
+        email: emailController.text.trim().isEmpty
+            ? null
+            : emailController.text.trim(),
+        telefone: telefoneController.text.trim(),
+      );
+
+      bool sucesso = await ApiService.cadastrarUsuario(
+        novoUsuario,
+        senhaController.text.trim(),
+      );
+
+      if (sucesso) {
+        mostrarMensagem("Cadastro realizado com sucesso!");
+        Navigator.pushNamed(context, "/login");
+      }
+    } catch (e) {
+      mostrarMensagem("Erro ao cadastrar: $e", erro: true);
+    } finally {
+      setState(() => loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF8E9D2), // fundo da tela
+      backgroundColor: const Color(0xFFF8E9D2),
 
       body: Center(
         child: SingleChildScrollView(
-
           child: Column(
-
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Imagem acima do formulário
               Image.asset(
                 'assets/imagens/logo.png',
-                width: 350,
-                height: 350,
+                width: 300,
+                height: 300,
               ),
+
               const SizedBox(height: 20),
 
-
-
-              // Retângulo do formulário
               Container(
                 width: 350,
                 padding: const EdgeInsets.all(25),
@@ -44,91 +88,133 @@ class _CadastroUsuarioState extends State<CadastroUsuario> {
                   color: const Color(0xFF62739D),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'CADASTRO',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 25),
 
-                    //  Campo CPF
-                    _buildCampo('Digite seu CPF*'),
-                    const SizedBox(height: 15),
-
-                    //  Campo Nome
-                    _buildCampo('Digite seu nome*'),
-                    const SizedBox(height: 15),
-
-                    //  Campo Telefone
-                    _buildCampo('Digite seu telefone*'),
-                    const SizedBox(height: 15),
-
-                    //  Campo E-mail
-                    _buildCampo('Digite seu e-mail'),
-                    const SizedBox(height: 15),
-
-                    //  Campo Senha
-                    _buildCampo('Digite sua senha*', obscure: true),
-                    const SizedBox(height: 25),
-
-                    //  Botão Cadastrar
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF48526E),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                        onPressed: () {
-                          // lógica do cadastro
-                        },
-                        child: const Text(
-                          'CADASTRAR',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      const Text(
+                        'CADASTRO',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
 
-                    const SizedBox(height: 15),
+                      const SizedBox(height: 25),
 
-                    // Texto pequeno
-                    const Text(
-                      'Possui uma conta?',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
+                      campo("Digite seu CPF*", cpfController,
+                          validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Informe seu CPF";
+                        }
+                        if (value.length < 11) {
+                          return "CPF incompleto";
+                        }
+                        return null;
+                      }, formatterNum: true),
+
+                      const SizedBox(height: 15),
+
+                      campo("Digite seu nome*", nomeController,
+                          validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Informe seu nome";
+                        }
+                        return null;
+                      }),
+
+                      const SizedBox(height: 15),
+
+                      campo("Digite seu telefone*", telefoneController,
+                          validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Informe seu telefone";
+                        }
+                        if (value.length < 11) {
+                          return "Telefone incompleto";
+                        }
+                        return null;
+                      }, formatterNum: true),
+
+                      const SizedBox(height: 15),
+
+                      campo("Digite seu e-mail", emailController,
+                          validator: (value) {
+                        if (value!.isNotEmpty &&
+                            !value.contains("@")) {
+                          return "E-mail inválido";
+                        }
+                        return null;
+                      }),
+
+                      const SizedBox(height: 15),
+
+                      campo("Digite sua senha*", senhaController,
+                          obscure: true,
+                          validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Informe sua senha";
+                        }
+                        if (value.length < 4) {
+                          return "A senha deve ter pelo menos 4 caracteres";
+                        }
+                        return null;
+                      }),
+
+                      const SizedBox(height: 25),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF48526E),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                          onPressed: loading ? null : cadastrar,
+                          child: loading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white)
+                              : const Text(
+                                  'CADASTRAR',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
                       ),
-                    ),
 
-                    // "Clique aqui"
-                    TextButton(
-                      onPressed: () {
-                        // Aqui você pode redirecionar para a tela de login
-                        Navigator.pushNamed(context, '/login');
-                      },
-                      child: const Text(
-                        'Clique aqui',
+                      const SizedBox(height: 15),
+
+                      const Text(
+                        'Possui uma conta?',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 13,
-                          decoration: TextDecoration.underline,
                         ),
                       ),
-                    ),
-                  ],
+
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/login');
+                        },
+                        child: const Text(
+                          'Clique aqui',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -138,10 +224,20 @@ class _CadastroUsuarioState extends State<CadastroUsuario> {
     );
   }
 
-  // Função para criar os campos de texto
-  Widget _buildCampo(String hint, {bool obscure = false}) {
-    return TextField(
+  // Função geradora de campos
+  Widget campo(String hint, TextEditingController controller,
+      {bool obscure = false,
+      bool formatterNum = false,
+      String? Function(String?)? validator}) {
+    return TextFormField(
+      controller: controller,
       obscureText: obscure,
+      keyboardType:
+          formatterNum ? TextInputType.number : TextInputType.text,
+      inputFormatters: formatterNum
+          ? [FilteringTextInputFormatter.digitsOnly]
+          : [],
+      validator: validator,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
@@ -150,7 +246,8 @@ class _CadastroUsuarioState extends State<CadastroUsuario> {
           borderRadius: BorderRadius.circular(30),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       ),
     );
   }
