@@ -347,7 +347,7 @@ app.put('/atualizar/usuario/:cpf', validarCPF('cpf'), async (req, res) => {
 });
 
 // Rota para atualizar pets
-app.put("/pets/:id", async(req,res) =>{
+app.put("/atualizar/pets/:id", async(req,res) =>{
     try{
         const idPet = req.params.id;
         const { nomePetAtualizar, racaPetAtualizar, idadePetAtualizar, descPetAtualizar, deficienciaPetAtualizar, imgPetAtualizar, especiePetAtualizar, statusPetAtualizar } = req.body;
